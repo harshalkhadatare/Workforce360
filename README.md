@@ -254,4 +254,5 @@ Django password hashing (PBKDF2) · custom user created before the first migrati
 | `process_notifications` | retry due emails, flag overdue emergency-leave forms |
 | `generate_sample_workbook [path]` | write the documented import sample |
 #   W o r k f o r c e 3 6 0  
+ #   W o r k f o r c e 3 6 0  
  
