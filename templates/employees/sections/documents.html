@@ -1,0 +1,22 @@
+{% extends "employees/sections/_layout.html" %}
+{% block section_actions %}{% endblock %}
+{% block section %}
+{% if items %}
+<div class="table-wrap mb-3"><table class="table">
+  <thead><tr><th>Document</th><th>Category</th><th class="hide-xs">Uploaded</th><th class="hide-xs">Size</th><th class="text-end">Actions</th></tr></thead>
+  <tbody>{% for d in items %}<tr>
+    <td><div class="cell-strong">{{ d.title }}</div><div class="cell-sub">{{ d.original_name }}{% if v.hr and not d.visible_to_employee %} · hidden from employee{% endif %}</div></td>
+    <td>{{ d.get_category_display }}{% if d.is_restricted %} <i class="bi bi-shield-lock text-muted" title="Restricted"></i>{% endif %}</td>
+    <td class="hide-xs">{{ d.created_at|date:"d M Y" }}<div class="cell-sub">{{ d.uploaded_by.employee_code }}</div></td>
+    <td class="hide-xs">{{ d.size_bytes|filesizeformat }}</td>
+    <td class="text-end text-nowrap"><a class="btn btn-sm btn-light" href="{% url 'employees:document_download' emp.pk d.pk %}"><i class="bi bi-download"></i>Download</a>
+      {% if v.hr %}<form method="post" class="d-inline" data-confirm="Delete this document permanently?" data-confirm-tone="btn-danger">{% csrf_token %}<button class="btn btn-sm btn-light" name="delete" value="{{ d.pk }}" aria-label="Delete"><i class="bi bi-trash"></i></button></form>{% endif %}</td>
+  </tr>{% endfor %}</tbody></table></div>
+{% else %}{% include "partials/empty.html" with icon="bi-folder2" title="No documents" %}{% endif %}
+{% if can_edit %}
+<div class="form-section"><div class="form-section-title">Upload a document</div>
+  <p class="form-text">Files are stored privately and can only be downloaded by authorised users after signing in. Upload only documents HR has asked for.</p>
+  <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}{% include "partials/form_grid.html" %}<button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i>Upload</button></form>
+</div>
+{% endif %}
+{% endblock %}

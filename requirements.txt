@@ -1,0 +1,33 @@
+# Vision Infra HR Portal — pinned, tested together on Python 3.13 (3.12 also supported by every package below).
+# Verified: full test suite passes against PostgreSQL 16 with these exact versions.
+Django==5.2.18                 # 5.2 LTS (security support until April 2028)
+djangorestframework==3.18.3
+psycopg[binary]==3.3.6         # PostgreSQL driver; for production builds you may use psycopg[c]
+pandas==3.0.5
+numpy==2.5.3
+openpyxl==3.1.5
+pillow==12.3.0                 # image validation for profile photos
+celery==5.6.3
+redis==8.1.0
+gunicorn==26.2.0
+whitenoise==6.12.0
+python-dotenv==1.2.3
+tzdata==2026.6
+
+# Transitive pins (keep the environment reproducible)
+amqp==5.4.1
+asgiref==3.13.0
+billiard==4.3.1
+click==8.5.0
+click-didyoumean==0.3.1
+click-plugins==1.1.1.2
+click-repl==0.4.1
+et_xmlfile==2.0.0
+kombu==5.6.2
+packaging==26.3
+prompt_toolkit==3.0.53
+python-dateutil==2.9.0.post0
+six==1.17.0
+sqlparse==0.6.0
+vine==5.1.0
+wcwidth==0.9.4

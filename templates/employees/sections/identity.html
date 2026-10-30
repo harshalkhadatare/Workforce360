@@ -1,0 +1,19 @@
+{% extends "employees/sections/_layout.html" %}
+{% block section_actions %}
+{% if can_reveal and ident and not editing %}{% if reveal %}<a class="btn btn-sm btn-light" href="?"><i class="bi bi-eye-slash"></i>Hide</a>{% else %}<a class="btn btn-sm btn-light" href="?reveal=1"><i class="bi bi-eye"></i>Reveal (logged)</a>{% endif %}{% endif %}
+{{ block.super }}
+{% endblock %}
+{% block section %}
+<div class="callout mb-3"><i class="bi bi-shield-lock me-1"></i>Restricted information. Values are masked by default; revealing them is recorded in the audit log. Record only documents the company requires.</div>
+{% if editing %}
+  {% include "employees/sections/_edit_form.html" %}
+{% elif ident %}
+<dl class="kv">
+  <div><dt>PAN</dt><dd class="font-monospace">{% if reveal %}{{ ident.pan_number|default:"—" }}{% else %}{{ ident.pan_masked|default:"—" }}{% endif %}</dd></div>
+  <div><dt>Aadhaar</dt><dd class="font-monospace">{% if reveal %}{{ ident.aadhaar_number|default:"—" }}{% else %}{{ ident.aadhaar_masked|default:"—" }}{% endif %}</dd></div>
+  <div><dt>Passport</dt><dd class="font-monospace">{% if reveal %}{{ ident.passport_number|default:"—" }}{% else %}{{ ident.passport_masked|default:"—" }}{% endif %}</dd></div>
+  <div><dt>Passport valid until</dt><dd>{{ ident.passport_valid_until|date:"d M Y"|default:"—" }}</dd></div>
+  <div><dt>{{ ident.other_id_type|default:"Other ID" }}</dt><dd class="font-monospace">{% if reveal %}{{ ident.other_id_number|default:"—" }}{% else %}{{ ident.other_id_masked|default:"—" }}{% endif %}</dd></div>
+</dl>
+{% else %}{% include "partials/empty.html" with icon="bi-credit-card-2-front" title="No identity details recorded" %}{% endif %}
+{% endblock %}

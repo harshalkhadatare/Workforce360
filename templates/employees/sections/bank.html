@@ -1,0 +1,20 @@
+{% extends "employees/sections/_layout.html" %}{% load ui %}
+{% block section_actions %}
+{% if can_reveal and bank and not editing %}{% if reveal %}<a class="btn btn-sm btn-light" href="?"><i class="bi bi-eye-slash"></i>Hide</a>{% else %}<a class="btn btn-sm btn-light" href="?reveal=1"><i class="bi bi-eye"></i>Reveal (logged)</a>{% endif %}{% endif %}
+{{ block.super }}
+{% endblock %}
+{% block section %}
+{% if editing %}
+  {% include "employees/sections/_edit_form.html" %}
+{% elif bank %}
+<dl class="kv">
+  <div><dt>Bank</dt><dd>{{ bank.bank_name }}</dd></div>
+  <div><dt>Account holder</dt><dd>{{ bank.account_holder_name }}</dd></div>
+  <div><dt>Account number</dt><dd class="font-monospace">{% if reveal %}{{ bank.account_number }}{% else %}{{ bank.account_masked }}{% endif %}</dd></div>
+  <div><dt>IFSC</dt><dd class="font-monospace">{{ bank.ifsc_code }}</dd></div>
+  <div><dt>Branch</dt><dd>{{ bank.branch|default:"—" }}</dd></div>
+  <div><dt>Verification</dt><dd>{% badge bank.verification_status bank.get_verification_status_display %}</dd></div>
+</dl>
+{% if v.self and not v.hr %}<p class="form-text mt-3">To change bank details, <a href="{% url 'queries:create' %}?category=PAYROLL">raise a query</a> with HR.</p>{% endif %}
+{% else %}{% include "partials/empty.html" with icon="bi-bank" title="No bank details recorded" %}{% endif %}
+{% endblock %}

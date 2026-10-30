@@ -1,0 +1,13 @@
+{% autoescape off %}{{ company_name }} — HR Portal
+
+{{ heading }}
+
+Hello {{ recipient_name }},
+
+{{ intro }}
+
+Employee ID (username): {{ employee_id }}
+Secure link: {{ link }}
+
+Your password is never sent by email. If you did not expect this message, contact HR.
+{% endautoescape %}

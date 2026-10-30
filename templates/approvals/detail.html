@@ -1,0 +1,137 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}{{ req.TYPE_LABEL }} #{{ req.pk }}{% endblock %}
+{% block page_title %}{% if is_reviewer %}Approval Details{% else %}Request Details{% endif %}{% endblock %}
+{% block breadcrumbs %}{{ block.super }}{% if is_reviewer %}<li class="breadcrumb-item"><a href="{% url 'approvals:pending' %}">Pending approvals</a></li>{% else %}<li class="breadcrumb-item"><a href="{% url 'lms:my_requests' %}">My requests</a></li>{% endif %}<li class="breadcrumb-item active">{{ req.TYPE_LABEL }} #{{ req.pk }}</li>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{% if slug == 'leave' and req.is_emergency %}Emergency leave{% else %}{{ req.TYPE_LABEL }}{% endif %} <span class="text-muted fw-normal">#{{ req.pk }}</span></h1>
+    <p>{{ req.summary }}</p></div>
+  <div class="d-flex align-items-center gap-2">{% badge req.status req.get_status_display %}{% if req.current_step_name and req.is_pending %}<span class="cell-sub">Step {{ req.current_step|add:1 }} of {{ req.chain|length }} · {{ req.current_step_name|title }}</span>{% endif %}</div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header"><h2>Request</h2><span class="cell-sub">Submitted {{ req.submitted_at|date:"d M Y H:i"|default:"by system" }}</span></div>
+      <div class="card-body">
+        <dl class="kv mb-3">
+          <div><dt>Employee</dt><dd>{{ req.employee.full_name }} ({{ req.employee.employee_id }})</dd></div>
+          <div><dt>Department</dt><dd>{{ req.employee.department|default:"—" }}</dd></div>
+          <div><dt>Approver (reporting manager)</dt><dd>{{ req.assigned_manager.full_name|default:"No manager — routed to HR" }}</dd></div>
+          <div><dt>Approval chain</dt><dd>{% for s in req.chain %}{{ s|title }}{% if not forloop.last %} → {% endif %}{% endfor %}</dd></div>
+          {% if slug == 'leave' %}
+            <div><dt>Leave type</dt><dd>{{ req.leave_type.name }}</dd></div>
+            <div><dt>Dates</dt><dd>{{ req.start_date|date:"d M Y" }}{% if req.end_date != req.start_date %} – {{ req.end_date|date:"d M Y" }}{% endif %}{% if req.is_half_day %} ({{ req.get_half_day_session_display }}){% endif %}</dd></div>
+            <div><dt>Leave days counted</dt><dd>{{ req.days_requested|num }}</dd></div>
+            {% if req.is_emergency %}
+              <div><dt>Rejoined / rejoining on</dt><dd>{{ req.rejoining_date|date:"d M Y" }}</dd></div>
+              <div><dt>Signed form due by</dt><dd>{{ req.form_deadline|date:"d M Y" }}</dd></div>
+              <div><dt>Signed form</dt><dd>{% if req.signed_form %}Received {{ req.signed_form_uploaded_at|date:"d M Y H:i" }}{% else %}<span class="text-danger">Not received</span>{% endif %}</dd></div>
+            {% endif %}
+          {% elif slug == 'short-leave' %}
+            <div><dt>Type</dt><dd>{{ req.get_kind_display }}</dd></div>
+            <div><dt>Date</dt><dd>{{ req.date|date:"D, d M Y" }}</dd></div>
+            <div><dt>Time</dt><dd>{{ req.start_time|time:"H:i" }} – {{ req.end_time|time:"H:i" }} ({{ req.duration_minutes }} min)</dd></div>
+            {% if month_count %}<div><dt>Short leaves this month</dt><dd>{{ month_count }} (incl. this)</dd></div>{% endif %}
+            <div><dt>Team notified</dt><dd>{{ req.team_notified|yesno:"Yes,No" }}</dd></div>
+          {% elif slug == 'missed-punch' %}
+            <div><dt>Attendance date</dt><dd>{{ req.date|date:"D, d M Y" }}</dd></div>
+            <div><dt>Issue</dt><dd>{{ req.get_issue_type_display }}</dd></div>
+            <div><dt>Recorded In / Out (original)</dt><dd>{{ req.original_in|time:"H:i"|default:"—" }} / {{ req.original_out|time:"H:i"|default:"—" }}</dd></div>
+            <div><dt>Requested In / Out</dt><dd class="fw-semibold">{{ req.requested_in|time:"H:i"|default:"—" }} / {{ req.requested_out|time:"H:i"|default:"—" }}</dd></div>
+            {% if req.adjustment %}<div><dt>Correction applied</dt><dd>Adjustment #{{ req.adjustment.pk }} on {{ req.adjustment.created_at|date:"d M Y" }} (original data preserved)</dd></div>{% endif %}
+          {% elif slug == 'on-duty' %}
+            <div><dt>Destination</dt><dd>{{ req.destination }}</dd></div>
+            <div><dt>From</dt><dd>{{ req.start_at|date:"d M Y H:i" }}</dd></div>
+            <div><dt>To</dt><dd>{{ req.end_at|date:"d M Y H:i" }}</dd></div>
+            {% if req.approved_after_start %}<div><dt>Note</dt><dd class="text-warning">Approved after the on-duty start time</dd></div>{% endif %}
+          {% elif slug == 'half-day' %}
+            <div><dt>Date</dt><dd>{{ req.attendance_record.date|date:"D, d M Y" }}</dd></div>
+            <div><dt>Origin</dt><dd>{{ req.get_origin_display }}</dd></div>
+            <div><dt>Outcome</dt><dd>{{ req.get_outcome_display|default:"Pending" }}</dd></div>
+          {% endif %}
+        </dl>
+        {% if slug == 'leave' %}
+          {% if req.late_application %}<div class="callout warn mb-2">Applied with less than the required advance notice (flag mode).</div>{% endif %}
+          {% if req.deadline_breached %}<div class="callout danger mb-2"><strong>Signed form deadline missed.</strong> Per the leave policy, emergency leave without a signed form within the deadline is non-approved and unpaid. This record is flagged for HR review; nothing has been changed automatically.</div>{% endif %}
+          {% if req.payroll_review_required %}<div class="callout warn mb-2"><i class="bi bi-cash-coin me-1"></i>Flagged for payroll review.</div>{% endif %}
+        {% endif %}
+        {% if slug == 'half-day' %}<div class="explain mb-2"><strong>Why this was flagged:</strong> {{ req.flag_explanation }}</div>
+          {% if req.employee_explanation %}<div class="callout mb-2"><strong>Employee explanation:</strong> {{ req.employee_explanation }}</div>{% endif %}{% endif %}
+        {% if req.reason %}<div class="form-section"><div class="form-section-title">Reason</div><p class="mb-0" style="white-space:pre-wrap">{{ req.reason }}</p></div>{% endif %}
+        {% if req.purpose %}<div class="form-section"><div class="form-section-title">Purpose</div><p class="mb-0" style="white-space:pre-wrap">{{ req.purpose }}</p>{% if req.remarks %}<p class="text-muted mt-2 mb-0">{{ req.remarks }}</p>{% endif %}</div>{% endif %}
+        {% if req.attachment or req.signed_form %}
+        <div class="form-section d-flex flex-wrap gap-2">
+          {% if req.attachment %}<a class="btn btn-sm btn-light" href="{% url 'approvals:attachment' slug req.pk 'attachment' %}"><i class="bi bi-paperclip"></i>{% if req.attachment_is_cctv %}CCTV evidence (restricted, access logged){% else %}Supporting document{% endif %}</a>{% endif %}
+          {% if req.signed_form %}<a class="btn btn-sm btn-light" href="{% url 'approvals:attachment' slug req.pk 'signed_form' %}"><i class="bi bi-file-earmark-check"></i>Signed leave form</a>{% endif %}
+        </div>{% endif %}
+        {% if req.decision_comment %}<div class="callout mt-3"><strong>Decision comment:</strong> {{ req.decision_comment }}</div>{% endif %}
+      </div>
+    </div>
+
+    {% if breakdown %}
+    <div class="card mb-3"><div class="card-header"><h2>How the leave days were counted</h2><span class="cell-sub">Policy version {{ req.policy_version_id }}</span></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Counted</th><th>Explanation</th></tr></thead><tbody>
+        {% for b in breakdown %}<tr><td>{{ b.date }}</td><td>{{ b.count }}</td><td>{{ b.label }}</td></tr>{% endfor %}</tbody></table></div></div>
+    {% endif %}
+
+    {% if attendance_window %}
+    <div class="card mb-3"><div class="card-header"><h2>Attendance context</h2><span class="cell-sub">3 days either side</span></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Late</th><th>Status</th></tr></thead><tbody>
+        {% for r in attendance_window %}<tr {% if r.date == record.date %}class="table-active"{% endif %}><td>{{ r.date|date:"D d M" }}</td><td>{{ r.first_in|time:"H:i"|default:"—" }}</td><td>{{ r.last_out|time:"H:i"|default:"—" }}</td><td>{{ r.late_minutes }}m</td><td>{% badge r.status r.get_status_display %}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    {% endif %}
+
+    <div class="card"><div class="card-header"><h2>Approval history</h2></div><div class="card-body">{% include "partials/approval_history.html" %}</div></div>
+  </div>
+
+  <div class="col-lg-4">
+    {% if can_act %}
+    <div class="card mb-3"><div class="card-header"><h2>Your decision</h2></div><div class="card-body">
+      <form method="post" action="{% url 'approvals:act' slug req.pk %}">{% csrf_token %}
+        <label class="form-label" for="comment">Comments</label>
+        <textarea class="form-control mb-1" id="comment" name="comment" rows="3" placeholder="Required when rejecting or asking for information"></textarea>
+        <div class="form-text mb-3">Visible to the employee.</div>
+        <div class="d-grid gap-2">
+          <button class="btn btn-success" name="action" value="APPROVE" data-confirm="{% if slug == 'half-day' %}Waive this half-day flag?{% else %}Approve this request?{% if req.chain|length > req.current_step|add:1 %} It will move to the next approval step.{% endif %}{% endif %}">
+            <i class="bi bi-check2-circle"></i>{% if slug == 'half-day' %}Waive flag{% else %}Approve{% endif %}</button>
+          <button class="btn btn-outline-danger" name="action" value="REJECT" data-confirm="{% if slug == 'half-day' %}Confirm the half day?{% else %}Reject this request?{% endif %}" data-confirm-tone="btn-danger">
+            <i class="bi bi-x-circle"></i>{% if slug == 'half-day' %}Confirm half day{% else %}Reject{% endif %}</button>
+          <button class="btn btn-light" name="action" value="REQUEST_INFO"><i class="bi bi-question-circle"></i>Request clarification</button>
+          <button class="btn btn-light btn-sm" name="action" value="REMARK">Add remark only</button>
+        </div>
+      </form>
+    </div></div>
+    {% endif %}
+    {% if can_respond or can_explain %}
+    <div class="card mb-3"><div class="card-header"><h2>{% if can_respond %}Clarification requested{% else %}Explain this flag{% endif %}</h2></div><div class="card-body">
+      <form method="post" action="{% url 'approvals:act' slug req.pk %}">{% csrf_token %}
+        <textarea class="form-control mb-2" name="comment" rows="3" required aria-label="Your response"></textarea>
+        <button class="btn btn-primary w-100" name="action" value="{% if can_respond %}RESPOND{% else %}EXPLAIN{% endif %}">Send</button>
+      </form></div></div>
+    {% endif %}
+    {% if can_upload_form %}
+    <div class="card mb-3"><div class="card-header"><h2>Signed leave form</h2></div><div class="card-body">
+      <p class="small text-muted">Upload the signed leave form by <strong>{{ req.form_deadline|date:"d M Y" }}</strong>. Late submission is flagged for HR review.</p>
+      <form method="post" enctype="multipart/form-data" action="{% url 'approvals:act' slug req.pk %}">{% csrf_token %}
+        <input class="form-control mb-2" type="file" name="signed_form" accept=".pdf,.jpg,.jpeg,.png" required aria-label="Signed form">
+        <button class="btn btn-primary w-100" name="action" value="SIGNED_FORM"><i class="bi bi-upload"></i>Upload</button></form></div></div>
+    {% endif %}
+    {% if balance %}
+    <div class="card mb-3"><div class="card-header"><h2>{{ balance.leave_type.name }} balance {{ balance.year }}</h2></div>
+      <ul class="list-plain px-3">
+        <li class="d-flex justify-content-between"><span>Closing balance</span><strong>{{ balance.closing|num }}</strong></li>
+        <li class="d-flex justify-content-between"><span>Pending (all open requests)</span><strong>{{ balance.pending|num }}</strong></li>
+        <li class="d-flex justify-content-between"><span>Available after pending</span><strong>{{ balance.available|num }}</strong></li>
+      </ul></div>
+    {% endif %}
+    {% if can_cancel %}
+    <div class="card"><div class="card-body">
+      <form method="post" action="{% url 'approvals:act' slug req.pk %}" data-confirm="{% if req.status == 'APPROVED' %}Cancel this approved request? Any leave deducted will be reversed in the ledger.{% else %}Cancel this request?{% endif %}" data-confirm-tone="btn-danger">{% csrf_token %}
+        {% if not is_owner or req.status == 'APPROVED' %}<label class="form-label" for="creason">Reason (required)</label><textarea class="form-control mb-2" id="creason" name="comment" rows="2"></textarea>{% endif %}
+        <button class="btn btn-outline-danger w-100" name="action" value="CANCEL"><i class="bi bi-x-lg"></i>Cancel request</button></form>
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

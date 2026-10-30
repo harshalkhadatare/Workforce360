@@ -1,0 +1,21 @@
+{% autoescape off %}{{ company_name }} — HR Portal
+
+{{ heading }}
+
+{% if recipient_name %}Hello {{ recipient_name }},
+
+{% endif %}{{ intro }}
+{% if employee_id %}
+Employee: {{ employee_name }} ({{ employee_id }}){% if request_type %}
+Request: {{ request_type }}{% endif %}{% endif %}{% for row in details %}
+{{ row.0 }}: {{ row.1 }}{% endfor %}{% if status %}
+Current status: {{ status }}{% endif %}
+{% if comment %}
+Comments:
+{{ comment }}
+{% endif %}{% if link %}
+Open in the HR portal (sign-in required): {{ link }}
+{% endif %}
+--
+Automated message from the {{ company_name }} HR portal. Do not reply.{% if helpdesk_email %} Questions: {{ helpdesk_email }}{% endif %}
+{% endautoescape %}

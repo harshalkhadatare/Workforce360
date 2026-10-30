@@ -1,0 +1,15 @@
+{% load ui %}{% if page_obj.object_list %}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th>Row</th><th>Employee</th><th>Date</th><th>In / Punch</th><th>Out / Type</th><th>Result</th><th>Messages</th></tr></thead>
+  <tbody>{% for r in page_obj %}
+  <tr class="{% if r.status == 'ERROR' %}row-error{% elif r.status == 'WARNING' %}row-warning{% elif r.status == 'CONFLICT' %}row-conflict{% endif %}">
+    <td>{{ r.row_number }}</td>
+    <td>{% if r.employee %}<span class="cell-strong">{{ r.employee_code }}</span><div class="cell-sub">{{ r.employee.full_name }}</div>{% else %}<span class="{% if r.employee_code %}text-danger{% else %}text-muted{% endif %}">{{ r.employee_code|default:"(blank)" }}</span>{% endif %}</td>
+    <td>{{ r.attendance_date|date:"d M Y"|default:"—" }}</td>
+    <td>{% if r.punch_time %}{{ r.punch_time|time:"H:i:s" }}{% else %}{{ r.in_time|time:"H:i"|default:"—" }}{% endif %}</td>
+    <td>{% if r.punch_time %}{{ r.punch_type|default:"—" }}{% else %}{{ r.out_time|time:"H:i"|default:"—" }}{% endif %}</td>
+    <td>{% badge r.status r.get_status_display %}</td>
+    <td class="small">{% for m in r.messages %}<div class="{% if m.level == 'error' %}text-danger{% elif m.level == 'warning' %}text-warning{% else %}text-muted{% endif %}">{{ m.text }}</div>{% empty %}—{% endfor %}</td>
+  </tr>{% endfor %}</tbody></table></div>
+{% include "partials/pagination.html" %}
+{% else %}{% include "partials/empty.html" with icon="bi-check2-circle" title="No rows in this view" %}{% endif %}

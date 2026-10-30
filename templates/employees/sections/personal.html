@@ -1,0 +1,22 @@
+{% extends "employees/sections/_layout.html" %}
+{% block section %}
+{% if editing %}
+  {% if not v.hr %}<p class="text-muted">You can update the fields below. To change your name or date of birth, raise a query with HR.</p>{% endif %}
+  {% include "employees/sections/_edit_form.html" %}
+{% else %}
+<dl class="kv">
+  <div><dt>Employee ID</dt><dd>{{ emp.employee_id }}</dd></div>
+  <div><dt>Full name</dt><dd>{{ emp.full_name }}</dd></div>
+  <div><dt>Date of birth</dt><dd class="{% if not emp.date_of_birth %}empty{% endif %}">{{ emp.date_of_birth|date:"d M Y"|default:"Not recorded" }}</dd></div>
+  <div><dt>Gender</dt><dd class="{% if not emp.gender %}empty{% endif %}">{{ emp.get_gender_display|default:"Not recorded" }}</dd></div>
+  <div><dt>Marital status</dt><dd class="{% if not emp.marital_status %}empty{% endif %}">{{ emp.marital_status|default:"Not recorded" }}</dd></div>
+  <div><dt>Blood group</dt><dd class="{% if not emp.blood_group %}empty{% endif %}">{{ emp.blood_group|default:"Not recorded" }}</dd></div>
+</dl>
+<div class="form-section mt-4"><div class="form-section-title">Emergency contact</div>
+<dl class="kv">
+  <div><dt>Name</dt><dd class="{% if not emp.emergency_contact_name %}empty{% endif %}">{{ emp.emergency_contact_name|default:"Not recorded" }}</dd></div>
+  <div><dt>Relationship</dt><dd class="{% if not emp.emergency_contact_relation %}empty{% endif %}">{{ emp.emergency_contact_relation|default:"—" }}</dd></div>
+  <div><dt>Phone</dt><dd class="{% if not emp.emergency_contact_phone %}empty{% endif %}">{{ emp.emergency_contact_phone|default:"—" }}</dd></div>
+</dl></div>
+{% endif %}
+{% endblock %}

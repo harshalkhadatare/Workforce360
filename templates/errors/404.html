@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Not found{% endblock %}
+{% block page_title %}Not found{% endblock %}
+{% block breadcrumbs_wrap %}{% endblock %}
+{% block content %}
+<div class="card"><div class="card-body">{% include "partials/empty.html" with icon="bi-signpost-split" title="We couldn't find that page or record" text="It may not exist, or you may not be authorised to view it." %}
+<div class="text-center"><a class="btn btn-light" href="/">Go to my dashboard</a></div></div></div>
+{% endblock %}

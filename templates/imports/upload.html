@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Attendance Import{% endblock %}
+{% block page_title %}Attendance Import &amp; Processing{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Attendance import</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Attendance Import &amp; Processing</h1><p>Upload → map columns → preview → validate → confirm → import → results.</p></div>
+  <div class="d-flex gap-2"><a class="btn btn-light" href="{% url 'imports:sample' %}"><i class="bi bi-file-earmark-spreadsheet"></i>Download sample template</a><a class="btn btn-light" href="{% url 'imports:history' %}"><i class="bi bi-clock-history"></i>Import history</a></div></div>
+{% include "imports/_steps.html" with step=1 %}
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-header"><h2>Step 1 — Upload workbook</h2></div><div class="card-body">
+      <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+        {% include "partials/form_errors.html" %}
+        {% include "partials/field.html" with field=form.file %}
+        {% include "partials/field.html" with field=form.template %}
+        <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i>Upload and continue</button>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body small">
+      <p class="fw-semibold mb-2">What happens next</p>
+      <ul class="mb-0 ps-3 text-muted">
+        <li>Nothing is imported until you review the preview and confirm.</li>
+        <li>Two layouts are supported: daily rows (In/Out columns) or a punch log (one row per punch). Multiple punches per day are kept.</li>
+        <li>Duplicate key: Employee ID + timestamp + punch type. Re-uploading the same file is safe.</li>
+        <li>Different times for an already-imported day are held for reconciliation — the original data is never overwritten.</li>
+        <li>The actual vendor export format has not been supplied; the sample template documents the supported layouts.</li>
+      </ul></div></div>
+    <div class="card"><div class="card-header"><h2>Recent uploads</h2></div>
+      {% if recent %}<ul class="list-plain px-3">{% for b in recent %}<li class="d-flex justify-content-between gap-2"><a class="text-reset" href="{% url 'imports:results' b.pk %}"><span class="fw-semibold">{{ b.batch_code }}</span> <span class="cell-sub">{{ b.original_name|truncatechars:30 }}</span></a>{% badge b.status b.get_status_display %}</li>{% endfor %}</ul>
+      {% else %}{% include "partials/empty.html" with icon="bi-file-earmark" title="No uploads yet" %}{% endif %}</div>
+  </div>
+</div>
+{% endblock %}

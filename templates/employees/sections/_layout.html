@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}{{ emp.full_name }} — {{ section_title }}{% endblock %}
+{% block page_title %}Employee Master{% endblock %}
+{% block breadcrumbs %}{{ block.super }}{% if nav_is_manager or nav_is_hr %}<li class="breadcrumb-item"><a href="{% url 'employees:directory' %}">Employee directory</a></li>{% endif %}<li class="breadcrumb-item"><a href="{% url 'employees:detail' emp.pk 'personal' %}">{{ emp.employee_id }}</a></li><li class="breadcrumb-item active">{{ section_title }}</li>{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body d-flex flex-wrap gap-3 align-items-center">
+  <span class="avatar avatar-lg">{{ emp.initials }}</span>
+  <div class="me-auto">
+    <h1 class="h4 mb-1">{{ emp.full_name }}</h1>
+    <div class="text-muted">{{ emp.employee_id }} · {{ emp.designation|default:"No designation" }} · {{ emp.department|default:"No department" }}</div>
+    <div class="mt-2 d-flex flex-wrap gap-2">
+      {% if emp.is_active %}{% badge emp.employment_status emp.get_employment_status_display %}{% else %}<span class="badge-status tone-gray">Deactivated</span>{% endif %}
+      <span class="badge-status {% if emp.is_confirmed %}tone-green{% else %}tone-amber{% endif %}">{{ emp.get_probation_status_display }}</span>
+      <span class="badge-status tone-gray">{{ emp.get_employment_type_display }}</span>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-4 small">
+    <div><div class="text-muted">Reporting manager</div><div class="fw-semibold">{{ emp.reporting_manager.full_name|default:"—" }}</div></div>
+    <div><div class="text-muted">Joined</div><div class="fw-semibold">{{ emp.date_of_joining|date:"d M Y" }}</div></div>
+    <div><div class="text-muted">Confirmed</div><div class="fw-semibold">{{ emp.confirmation_date|date:"d M Y"|default:"—" }}</div></div>
+    {% if v.hr %}<div class="d-flex align-items-center"><a class="btn btn-sm btn-light" href="{% url 'employees:account' emp.pk %}"><i class="bi bi-person-gear"></i>Login &amp; role</a></div>{% endif %}
+  </div>
+</div></div>
+
+<nav class="tabs-line" aria-label="Employee master sections">
+  {% for key, label, icon in sections %}<a href="{% url 'employees:detail' emp.pk key %}" class="{% if key == section %}active{% endif %}" {% if key == section %}aria-current="page"{% endif %}><i class="bi {{ icon }}"></i>{{ label }}</a>{% endfor %}
+</nav>
+
+<div class="card">
+  <div class="card-header"><h2>{{ section_title }}</h2>
+    <div class="d-flex gap-2">{% block section_actions %}{% if can_edit and not editing %}<a class="btn btn-sm btn-light" href="?edit=1"><i class="bi bi-pencil"></i>Edit</a>{% endif %}{% endblock %}</div>
+  </div>
+  <div class="card-body">{% block section %}{% endblock %}</div>
+</div>
+{% endblock %}

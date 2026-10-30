@@ -1,0 +1,91 @@
+{% extends "base.html" %}{% load static %}{% load ui %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Admin dashboard</li>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Company overview</h1><p>All figures are calculated from portal records for {{ day|date:"l, d M Y" }}.</p></div>
+  <form class="filters" method="get">
+    <div><label class="form-label small" for="f-date">Date</label><input id="f-date" class="form-control" type="date" name="date" value="{{ day|date:'Y-m-d' }}" data-autosubmit></div>
+    <div><label class="form-label small" for="f-dept">Department</label><select id="f-dept" class="form-select" name="department" data-autosubmit>
+      <option value="">All departments</option>{% for d in departments %}<option value="{{ d.pk }}" {% if dept == d.pk|stringformat:'s' %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+  </form>
+</div>
+
+{% if not has_data %}
+<div class="callout warn mb-3"><i class="bi bi-info-circle me-1"></i>No attendance data has been processed for {{ day|date:"d M Y" }}. Present / absent / late counts will appear after an <a href="{% url 'imports:upload' %}">attendance import</a> covering this date.</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-4 col-xl-2"><a class="card stat" href="{% url 'employees:directory' %}"><span class="stat-label">Active employees</span><span class="stat-value">{{ active_employees }}</span></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a class="card stat" href="{% url 'attendance:team' %}?date={{ day|date:'Y-m-d' }}&status=PRESENT"><span class="stat-label"><span class="badge-status tone-green">Present</span></span><span class="stat-value">{{ present }}</span></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a class="card stat" href="{% url 'attendance:team' %}?date={{ day|date:'Y-m-d' }}&status=ABSENT"><span class="stat-label"><span class="badge-status tone-red">Absent</span></span><span class="stat-value">{{ absent }}</span></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a class="card stat" href="{% url 'lms:calendar' %}?scope=company"><span class="stat-label"><span class="badge-status tone-blue">On leave</span></span><span class="stat-value">{{ on_leave }}</span></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a class="card stat" href="{% url 'attendance:team' %}?date={{ day|date:'Y-m-d' }}&status=INCOMPLETE"><span class="stat-label"><span class="badge-status tone-amber">Missing punch</span></span><span class="stat-value">{{ incomplete }}</span></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a class="card stat" href="{% url 'attendance:team' %}?date={{ day|date:'Y-m-d' }}&flag=late"><span class="stat-label"><span class="badge-status tone-violet">Late / half-day</span></span><span class="stat-value">{{ late }} <span class="fs-6 text-muted">/ {{ half_day_flags }}</span></span></a></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header"><h2>Attendance — last 14 days</h2><span class="cell-sub">Present · Absent · Late</span></div>
+      <div class="card-body">{% if has_data or trend %}<canvas id="trend" height="110" aria-label="Attendance trend chart" role="img"></canvas>{% endif %}</div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><h2>Approvals &amp; queues</h2><a class="small" href="{% url 'approvals:pending' %}?all=1">Open queue</a></div>
+      <ul class="list-plain px-3">
+        <li class="d-flex justify-content-between"><span>Pending leave approvals</span><strong>{{ pending_leave }}</strong></li>
+        <li class="d-flex justify-content-between"><span>Pending short leave</span><strong>{{ pending_short }}</strong></li>
+        <li class="d-flex justify-content-between"><span>Pending missed-punch</span><strong>{{ pending_missed }}</strong></li>
+        <li class="d-flex justify-content-between"><span>Pending on-duty</span><strong>{{ pending_od }}</strong></li>
+        <li class="d-flex justify-content-between"><span>Half-day reviews open</span><strong>{{ pending_halfday }}</strong></li>
+        <li class="d-flex justify-content-between"><span>Awaiting HR / Admin (you)</span><strong>{{ awaiting_hr }}</strong></li>
+        <li class="d-flex justify-content-between"><a href="{% url 'queries:list' %}">Open employee queries</a><strong>{{ open_queries }}</strong></li>
+        <li class="d-flex justify-content-between"><a href="{% url 'reporting:report' 'payroll-exceptions' %}">Emergency forms overdue</a><strong class="{% if emergency_overdue %}text-danger{% endif %}">{{ emergency_overdue }}</strong></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><h2>Latest attendance import</h2><a class="small" href="{% url 'imports:history' %}">History</a></div>
+      <div class="card-body">
+        {% if latest_import %}
+        <div class="d-flex justify-content-between align-items-start mb-2"><div><div class="cell-strong">{{ latest_import.batch_code }} · {{ latest_import.original_name }}</div>
+          <div class="cell-sub">{{ latest_import.created_at|date:"d M Y H:i" }} by {{ latest_import.uploaded_by.employee_code }}</div></div>{% badge latest_import.status latest_import.get_status_display %}</div>
+        <div class="d-flex gap-4 small"><span>Imported <strong>{{ latest_import.imported_rows }}</strong></span><span>Rejected <strong>{{ latest_import.error_rows }}</strong></span><span>Duplicates <strong>{{ latest_import.duplicate_rows }}</strong></span><span>Conflicts <strong>{{ latest_import.conflict_rows }}</strong></span></div>
+        <a class="btn btn-sm btn-light mt-3" href="{% url 'imports:results' latest_import.pk %}">Open</a>
+        {% else %}{% include "partials/empty.html" with icon="bi-file-earmark-arrow-up" title="No imports yet" text="Upload the first attendance workbook to start processing attendance." %}{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><h2>By department</h2></div>
+      {% if dept_breakdown %}<div class="table-wrap"><table class="table"><thead><tr><th>Department</th><th>Present</th><th>Absent</th><th>Late</th></tr></thead><tbody>
+        {% for r in dept_breakdown %}<tr><td>{{ r.employee__department__name|default:"Unassigned" }}</td><td>{{ r.present }}</td><td>{{ r.absent }}</td><td>{{ r.late }}</td></tr>{% endfor %}
+      </tbody></table></div>{% else %}{% include "partials/empty.html" with icon="bi-diagram-3" title="No attendance for this date" %}{% endif %}
+    </div>
+  </div>
+</div>
+{{ trend|json_script:"trend-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<script>
+(function () {
+  const el = document.getElementById("trend"); if (!el || !window.Chart) return;
+  const data = JSON.parse(document.getElementById("trend-data").textContent);
+  new Chart(el, { type: "bar", data: { labels: data.map(d => d.d), datasets: [
+      { label: "Present", data: data.map(d => d.present), backgroundColor: "#12805c", borderRadius: 4 },
+      { label: "Absent", data: data.map(d => d.absent), backgroundColor: "#c0352b", borderRadius: 4 },
+      { label: "Late", data: data.map(d => d.late), backgroundColor: "#e0a106", borderRadius: 4 } ] },
+    options: { plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { family: "Inter" } } } },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#f0f2f6" } } } } });
+})();
+</script>
+{% endblock %}

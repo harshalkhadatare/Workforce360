@@ -1,0 +1,37 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light only">
+  <title>{% block title %}Sign in{% endblock %} · {{ COMPANY_SHORT_NAME }} HR Portal</title>
+  <link rel="stylesheet" href="{% static 'vendor/inter/inter.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+<div class="auth-wrap">
+  <section class="auth-side" aria-hidden="true">
+    <div class="d-flex align-items-center gap-2"><div class="brand-mark">VI</div><strong>{{ COMPANY_NAME }}</strong></div>
+    <div>
+      <h2>Employee self-service for attendance, leave and HR records.</h2>
+      <ul>
+        <li><i class="bi bi-calendar2-check"></i><span>See your punches, grace usage and leave balance in one place.</span></li>
+        <li><i class="bi bi-send-check"></i><span>Apply for leave, short leave, on-duty and missed-punch corrections.</span></li>
+        <li><i class="bi bi-shield-lock"></i><span>Confidential — access is limited to your own records and authorised reviewers.</span></li>
+      </ul>
+    </div>
+    <p class="text-muted small mb-0">Internal use only. Activity on this portal is logged.</p>
+  </section>
+  <main class="auth-main">
+    <div class="auth-card">
+      <div class="d-flex d-lg-none align-items-center gap-2 mb-4"><div class="brand-mark">VI</div><strong>{{ COMPANY_SHORT_NAME }} HR Portal</strong></div>
+      {% for message in messages %}<div class="callout {% if message.tags == 'error' %}danger{% endif %} mb-3" role="status">{{ message }}</div>{% endfor %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+<script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

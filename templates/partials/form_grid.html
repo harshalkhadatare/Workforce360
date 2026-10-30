@@ -1,0 +1,10 @@
+{% include "partials/form_errors.html" %}
+<div class="row g-0 gx-3">
+  {% for field in form %}
+    {% if field.is_hidden %}{{ field }}{% else %}
+    <div class="{% if field.widget_type == 'textarea' or field.widget_type == 'checkbox' %}col-12{% else %}col-md-6{% endif %}">
+      {% include "partials/field.html" %}
+    </div>
+    {% endif %}
+  {% endfor %}
+</div>

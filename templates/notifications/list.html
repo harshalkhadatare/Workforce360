@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Notifications</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Notifications</h1><p>Updates about your requests, approvals and HR announcements.</p></div>
+  <div class="d-flex gap-2"><a class="btn btn-light" href="?{% if show != 'unread' %}show=unread{% endif %}">{% if show == 'unread' %}Show all{% else %}Unread only{% endif %}</a>
+    <form method="post">{% csrf_token %}<button class="btn btn-light" name="all" value="1"><i class="bi bi-check2-all"></i>Mark all read</button></form></div></div>
+<div class="row g-3">
+  <div class="col-lg-8"><div class="card">
+    {% if page_obj.object_list %}
+    <ul class="list-plain">{% for n in page_obj %}
+      <li class="px-3 d-flex gap-3 align-items-start {% if not n.is_read %}notif-unread{% endif %}">
+        <span class="stat-icon {% if n.is_read %}tone-bg-gray{% else %}tone-bg-blue{% endif %} mt-1"><i class="bi bi-bell"></i></span>
+        <div class="flex-grow-1"><div class="{% if not n.is_read %}fw-semibold{% endif %}">{{ n.title }}</div><div class="cell-sub">{{ n.message|truncatechars:200 }}</div><div class="cell-sub">{{ n.created_at|date:"d M Y H:i" }}</div></div>
+        <form method="post">{% csrf_token %}<button class="btn btn-sm btn-light" name="id" value="{{ n.pk }}">{% if n.link %}Open{% else %}Mark read{% endif %}</button></form>
+      </li>{% endfor %}</ul>
+    {% include "partials/pagination.html" %}
+    {% else %}{% include "partials/empty.html" with icon="bi-bell" title="No notifications" %}{% endif %}
+  </div></div>
+  <div class="col-lg-4"><div class="card"><div class="card-header"><h2>Emails to you</h2></div>
+    {% if emails %}<ul class="list-plain px-3">{% for e in emails %}<li><div class="small fw-semibold">{{ e.subject|truncatechars:70 }}</div><div class="d-flex justify-content-between cell-sub"><span>{{ e.created_at|date:"d M H:i" }}</span>{% badge e.status e.get_status_display %}</div></li>{% endfor %}</ul>
+    {% else %}{% include "partials/empty.html" with icon="bi-envelope" title="No emails logged" %}{% endif %}</div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}My Dashboard{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+{% block breadcrumbs_wrap %}{% endblock %}
+{% block content %}
+{% if no_employee %}
+<div class="card"><div class="card-body">{% include "partials/empty.html" with icon="bi-person-x" title="Your login is not linked to an employee record" text="Ask HR to link your account to the employee master to use self-service features." %}</div></div>
+{% else %}
+<div class="page-head">
+  <div>
+    <h1>Welcome back, {{ emp.first_name }}</h1>
+    <p>{{ today|date:"l, d F Y" }} · {{ emp.designation|default:"" }}{% if emp.department %} · {{ emp.department }}{% endif %}</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-primary" href="{% url 'lms:apply' %}"><i class="bi bi-calendar-plus"></i>Apply for Leave</a>
+    <div class="dropdown">
+      <button class="btn btn-light" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-plus-lg"></i>New request</button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{% url 'attendance:short_leave' %}"><i class="bi bi-hourglass-split me-2"></i>Apply for Short Leave</a></li>
+        <li><a class="dropdown-item" href="{% url 'attendance:missed_punch' %}"><i class="bi bi-fingerprint me-2"></i>Report Missed Punch</a></li>
+        <li><a class="dropdown-item" href="{% url 'attendance:on_duty' %}"><i class="bi bi-briefcase me-2"></i>Submit On-Duty Request</a></li>
+        <li><a class="dropdown-item" href="{% url 'lms:apply' %}?emergency=1"><i class="bi bi-exclamation-diamond me-2"></i>Emergency leave</a></li>
+        <li><a class="dropdown-item" href="{% url 'queries:create' %}"><i class="bi bi-chat-left-text me-2"></i>Raise a Query</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% if approvals_waiting %}
+<div class="callout mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+  <span><i class="bi bi-check2-square me-1 text-primary"></i><strong>{{ approvals_waiting }}</strong> request{{ approvals_waiting|pluralize }} from your team await your decision.</span>
+  <a class="btn btn-sm btn-primary" href="{% url 'approvals:pending' %}">Review now</a>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header"><h2>My attendance today</h2><a class="small" href="{% url 'attendance:day' today|date:'Y-m-d' %}">Details</a></div>
+      <div class="card-body">
+        {% if rec %}
+        <div class="d-flex align-items-center justify-content-between mb-3">{% badge rec.status rec_status %}<span class="cell-sub">Shift {{ rec.scheduled_start|time:"H:i" }}–{{ rec.scheduled_end|time:"H:i" }}</span></div>
+        <div class="day-grid">
+          <div class="day-cell"><div class="lbl">In</div><div class="val">{{ rec.first_in|time:"H:i"|default:"—" }}</div></div>
+          <div class="day-cell"><div class="lbl">Out</div><div class="val">{{ rec.last_out|time:"H:i"|default:"—" }}</div></div>
+          <div class="day-cell"><div class="lbl">Worked</div><div class="val">{{ rec.worked_minutes|hhmm }}</div></div>
+          <div class="day-cell"><div class="lbl">Late / Early</div><div class="val">{{ rec.late_minutes }}m / {{ rec.early_minutes }}m</div></div>
+        </div>
+        {% if rec.explanation %}<div class="explain mt-3">{{ rec.explanation }}</div>{% endif %}
+        {% else %}
+        <div class="d-flex gap-3 align-items-start">
+          <div class="stat-icon tone-bg-gray"><i class="bi bi-cloud-arrow-down"></i></div>
+          <div><div class="fw-semibold">Today's punches are not available yet</div>
+            <div class="cell-sub">Attendance is updated when HR imports the punch data.{% if last_rec %} Latest imported day: {{ last_rec.date|date:"d M Y" }}.{% endif %}</div>
+            {% if sched %}<div class="cell-sub mt-1">Scheduled hours: {{ sched.start_time|time:"H:i" }} – {{ sched.end_time|time:"H:i" }}</div>{% endif %}</div>
+        </div>
+        {% endif %}
+        <div class="mt-3">
+          <div class="d-flex justify-content-between small mb-1"><span class="text-muted">Grace used this month</span>
+            <span class="fw-semibold">{{ grace.used }}{% if grace.limit %} / {{ grace.limit }}{% endif %} min</span></div>
+          <div class="meter {% if grace.limit and grace.used >= grace.limit %}over{% elif grace.limit and grace.used >= 45 %}warn{% endif %}"><span style="width:{% if grace.limit %}{% widthratio grace.used grace.limit 100 %}{% else %}0{% endif %}%"></span></div>
+          <div class="cell-sub mt-1">{{ grace.late_days }} late day{{ grace.late_days|pluralize }} · {{ grace.half_day_flags }} half-day flag{{ grace.half_day_flags|pluralize }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-7">
+    <div class="row g-3">
+      <div class="col-6 col-md-4"><a class="card stat" href="{% url 'lms:balance' %}"><span class="stat-label"><span class="stat-icon tone-bg-blue"><i class="bi bi-calendar-check"></i></span>Available leave</span><span class="stat-value">{{ available_total|num }}</span><span class="stat-sub">days, after pending requests</span></a></div>
+      <div class="col-6 col-md-4"><a class="card stat" href="{% url 'lms:balance' %}"><span class="stat-label"><span class="stat-icon tone-bg-gray"><i class="bi bi-calendar-minus"></i></span>Leave used</span><span class="stat-value">{{ used_total|num }}</span><span class="stat-sub">days this year</span></a></div>
+      <div class="col-6 col-md-4"><a class="card stat" href="{% url 'lms:my_requests' %}?type=leave"><span class="stat-label"><span class="stat-icon tone-bg-amber"><i class="bi bi-hourglass"></i></span>Pending leave</span><span class="stat-value">{{ pending_leave }}</span><span class="stat-sub">awaiting decision</span></a></div>
+      <div class="col-6 col-md-4"><a class="card stat" href="{% url 'lms:my_requests' %}?type=short-leave"><span class="stat-label"><span class="stat-icon tone-bg-violet"><i class="bi bi-hourglass-split"></i></span>Short leaves</span><span class="stat-value">{{ pending_short }}</span><span class="stat-sub">pending</span></a></div>
+      <div class="col-6 col-md-4"><a class="card stat" href="{% url 'lms:my_requests' %}?type=missed-punch"><span class="stat-label"><span class="stat-icon tone-bg-teal"><i class="bi bi-fingerprint"></i></span>Missed punch</span><span class="stat-value">{{ pending_missed }}</span><span class="stat-sub">corrections pending</span></a></div>
+      <div class="col-6 col-md-4"><a class="card stat" href="{% url 'lms:my_requests' %}?type=half-day"><span class="stat-label"><span class="stat-icon tone-bg-red"><i class="bi bi-flag"></i></span>Half-day reviews</span><span class="stat-value">{{ pending_halfday }}</span><span class="stat-sub">pending review</span></a></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header"><h2>My requests</h2><a class="small" href="{% url 'lms:my_requests' %}">View all</a></div>
+      {% if recent_requests %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Request</th><th class="hide-xs">Submitted</th><th>Status</th></tr></thead>
+        <tbody>{% for r in recent_requests %}
+          <tr data-href="{% url 'approvals:detail' r.URL_SLUG r.pk %}"><td><div class="cell-strong">{{ r.TYPE_LABEL }}</div><div class="cell-sub">{{ r.summary }}</div></td>
+            <td class="hide-xs">{{ r.submitted_at|date:"d M Y"|default:"—" }}</td><td>{% badge r.status r.get_status_display %}</td></tr>
+        {% endfor %}</tbody></table></div>
+      {% else %}{% include "partials/empty.html" with icon="bi-inboxes" title="No requests yet" text="Leave, short-leave, on-duty and missed-punch requests will appear here." %}{% endif %}
+    </div>
+    {% if missing_punches %}
+    <div class="card mb-3">
+      <div class="card-header"><h2><i class="bi bi-exclamation-triangle text-warning me-1"></i>Missing punches</h2></div>
+      <ul class="list-plain px-3">{% for m in missing_punches %}
+        <li class="d-flex justify-content-between align-items-center"><span><span class="fw-semibold">{{ m.date|date:"D, d M" }}</span> <span class="cell-sub">· In {{ m.first_in|time:"H:i"|default:"—" }} · Out {{ m.last_out|time:"H:i"|default:"—" }}</span></span>
+          <a class="btn btn-sm btn-light" href="{% url 'attendance:missed_punch' %}?date={{ m.date|date:'Y-m-d' }}">Report</a></li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header"><h2>Upcoming approved leave</h2></div>
+      {% if upcoming_leave %}<ul class="list-plain px-3">{% for l in upcoming_leave %}<li><div class="fw-semibold">{{ l.leave_type.name }}</div><div class="cell-sub">{{ l.summary }}</div></li>{% endfor %}</ul>
+      {% else %}{% include "partials/empty.html" with icon="bi-sun" title="No upcoming leave" %}{% endif %}
+    </div>
+    <div class="card mb-3">
+      <div class="card-header"><h2>Quick actions</h2></div>
+      <div class="card-body d-grid gap-2" style="grid-template-columns:1fr 1fr;">
+        <a class="quick-action" href="{% url 'lms:calendar' %}"><i class="bi bi-calendar3"></i>View Attendance</a>
+        <a class="quick-action" href="{% url 'lms:balance' %}"><i class="bi bi-pie-chart"></i>Leave Balance</a>
+        <a class="quick-action" href="{% url 'attendance:short_leave' %}"><i class="bi bi-hourglass-split"></i>Short Leave</a>
+        <a class="quick-action" href="{% url 'attendance:on_duty' %}"><i class="bi bi-briefcase"></i>On Duty</a>
+        <a class="quick-action" href="{% url 'queries:create' %}"><i class="bi bi-chat-left-text"></i>Raise a Query{% if open_queries %} <span class="badge text-bg-light ms-auto">{{ open_queries }} open</span>{% endif %}</a>
+        <a class="quick-action" href="{% url 'employees:me' %}"><i class="bi bi-person-badge"></i>My Profile</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>Recent notifications</h2><a class="small" href="{% url 'notifications:list' %}">All</a></div>
+      {% if notifications %}<ul class="list-plain px-3">{% for n in notifications %}<li><a href="{{ n.link|default:'#' }}" class="{% if not n.is_read %}fw-semibold{% endif %} text-reset">{{ n.title }}</a><div class="cell-sub">{{ n.created_at|timesince }} ago</div></li>{% endfor %}</ul>
+      {% else %}{% include "partials/empty.html" with icon="bi-bell" title="You're all caught up" %}{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

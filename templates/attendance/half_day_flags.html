@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Half-day flags{% endblock %}
+{% block page_title %}My Half-day Flags{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Half-day flags</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Half-day flags</h1><p>Days flagged under the grace-period / half-day rule. You can add an explanation; your manager (and HR, where configured) decide whether the flag stands.</p></div></div>
+<div class="card">
+  {% if page_obj.object_list %}
+  <div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Reason for flag</th><th>Review status</th><th>Outcome</th></tr></thead><tbody>
+    {% for r in page_obj %}<tr data-href="{% url 'approvals:detail' 'half-day' r.pk %}"><td class="cell-strong">{{ r.attendance_record.date|date:"D d M Y" }}</td><td class="cell-sub" style="max-width:520px">{{ r.flag_explanation|truncatechars:160 }}</td>
+      <td>{% badge r.status r.get_status_display %}</td><td>{{ r.get_outcome_display|default:"—" }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% include "partials/pagination.html" %}
+  {% else %}{% include "partials/empty.html" with icon="bi-flag" title="No half-day flags" %}{% endif %}
+</div>
+{% endblock %}

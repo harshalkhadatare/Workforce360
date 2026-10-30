@@ -1,0 +1,27 @@
+{% extends "employees/sections/_layout.html" %}
+{% block section %}
+{% if editing %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% include "partials/form_grid.html" with form=form %}
+  <div class="form-section"><div class="form-section-title">Current address</div>{% include "partials/form_grid.html" with form=cur_form %}</div>
+  <div class="form-section"><div class="form-section-title">Permanent address</div>{% include "partials/form_grid.html" with form=per_form %}</div>
+  <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Save changes</button><a class="btn btn-light" href="?">Cancel</a></div>
+</form>
+{% else %}
+<dl class="kv">
+  <div><dt>Official email</dt><dd class="{% if not emp.official_email %}empty{% endif %}">{{ emp.official_email|default:"Not recorded" }}</dd></div>
+  <div><dt>Personal email</dt><dd class="{% if not emp.personal_email %}empty{% endif %}">{% if v.hr or v.self %}{{ emp.personal_email|default:"Not recorded" }}{% else %}Restricted{% endif %}</dd></div>
+  <div><dt>Mobile</dt><dd class="{% if not emp.mobile %}empty{% endif %}">{{ emp.mobile|default:"Not recorded" }}</dd></div>
+  <div><dt>Alternate number</dt><dd class="{% if not emp.alternate_mobile %}empty{% endif %}">{% if v.hr or v.self %}{{ emp.alternate_mobile|default:"—" }}{% else %}Restricted{% endif %}</dd></div>
+</dl>
+{% if v.hr or v.self %}
+<div class="row g-3 mt-2">
+  <div class="col-md-6"><div class="form-section"><div class="form-section-title">Current address</div>
+    {% with a=addresses.CURRENT %}{% if a %}<p class="mb-0">{{ a.line1 }}{% if a.line2 %}, {{ a.line2 }}{% endif %}<br>{{ a.city }}, {{ a.state }} {{ a.pin_code }}<br>{{ a.country }}</p>{% else %}<p class="text-muted mb-0">Not recorded</p>{% endif %}{% endwith %}</div></div>
+  <div class="col-md-6"><div class="form-section"><div class="form-section-title">Permanent address</div>
+    {% with a=addresses.PERMANENT %}{% if a %}<p class="mb-0">{{ a.line1 }}{% if a.line2 %}, {{ a.line2 }}{% endif %}<br>{{ a.city }}, {{ a.state }} {{ a.pin_code }}<br>{{ a.country }}</p>{% else %}<p class="text-muted mb-0">Not recorded</p>{% endif %}{% endwith %}</div></div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

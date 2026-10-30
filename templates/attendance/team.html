@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Team Attendance{% endblock %}
+{% block page_title %}{% if company %}Company Attendance{% else %}Team Attendance{% endif %}{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Team attendance</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ d|date:"l, d M Y" }}</h1><p>{% if company %}All active employees{% else %}Your direct reports{% endif %}{% if missing %} · {{ missing }} without processed data for this date{% endif %}</p></div></div>
+<div class="card">
+  <div class="card-body border-bottom"><form class="filters" method="get">
+    <div><label class="form-label" for="td">Date</label><input id="td" class="form-control" type="date" name="date" value="{{ d|date:'Y-m-d' }}" data-autosubmit></div>
+    <div><label class="form-label" for="ts">Status</label><select id="ts" class="form-select" name="status" data-autosubmit><option value="">All</option>{% for v, l in statuses %}<option value="{{ v }}" {% if request.GET.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label class="form-label" for="tf">Exceptions</label><select id="tf" class="form-select" name="flag" data-autosubmit><option value="">All</option><option value="late" {% if request.GET.flag == 'late' %}selected{% endif %}>Late arrivals</option></select></div>
+    {% if company %}<div><label class="form-label" for="tdp">Department</label><select id="tdp" class="form-select" name="department" data-autosubmit><option value="">All</option>{% for dp in departments %}<option value="{{ dp.pk }}" {% if request.GET.department == dp.pk|stringformat:'s' %}selected{% endif %}>{{ dp.name }}</option>{% endfor %}</select></div>{% endif %}
+    {% if nav_is_hr %}<div><label class="form-label" for="tsc">Scope</label><select id="tsc" class="form-select" name="scope" data-autosubmit><option value="">Company</option><option value="team" {% if request.GET.scope == 'team' %}selected{% endif %}>My team</option></select></div>{% endif %}
+  </form></div>
+  {% if page_obj.object_list %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Employee</th><th class="hide-xs">Department</th><th>In</th><th>Out</th><th>Worked</th><th>Late</th><th class="hide-xs">Month grace</th><th>Status</th></tr></thead>
+    <tbody>{% for r, label in page_obj %}<tr data-href="{% url 'attendance:day' d|date:'Y-m-d' %}?employee={{ r.employee_id }}">
+      <td><div class="cell-strong">{{ r.employee.full_name }}</div><div class="cell-sub">{{ r.employee.employee_id }}</div></td><td class="hide-xs">{{ r.employee.department|default:"—" }}</td>
+      <td>{{ r.first_in|time:"H:i"|default:"—" }}</td><td>{{ r.last_out|time:"H:i"|default:"—" }}</td><td>{{ r.worked_minutes|hhmm }}</td>
+      <td>{% if r.late_minutes %}{{ r.late_minutes }}m{% else %}—{% endif %}</td><td class="hide-xs">{{ r.month_grace_cumulative }}m</td><td>{% badge r.status label %}</td></tr>{% endfor %}</tbody></table></div>
+  {% include "partials/pagination.html" %}
+  {% else %}{% include "partials/empty.html" with icon="bi-people" title="No attendance records for this selection" text="Data appears after an import covering this date." %}{% endif %}
+</div>
+{% endblock %}

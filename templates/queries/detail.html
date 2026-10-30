@@ -1,0 +1,45 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}{{ q.reference }}{% endblock %}
+{% block page_title %}Query {{ q.reference }}{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'queries:list' %}">Queries</a></li><li class="breadcrumb-item active">{{ q.reference }}</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ q.subject }}</h1><p>{{ q.reference }} · {{ q.get_category_display }} · raised {{ q.created_at|date:"d M Y H:i" }} by {{ q.employee.full_name }} ({{ q.employee.employee_id }})</p></div>{% badge q.status q.get_status_display %}</div>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card mb-3"><div class="card-body">
+      <p style="white-space:pre-wrap" class="mb-2">{{ q.description }}</p>
+      {% if q.attachment %}<a class="btn btn-sm btn-light" href="{% url 'queries:attachment' q.pk %}"><i class="bi bi-paperclip"></i>Attachment</a>{% endif %}
+    </div></div>
+    {% if q.resolution and q.status == 'RESOLVED' or q.status == 'CLOSED' and q.resolution %}<div class="callout mb-3"><strong>Resolution:</strong> <span style="white-space:pre-wrap">{{ q.resolution }}</span></div>{% endif %}
+    <div class="card"><div class="card-header"><h2>Conversation</h2></div><div class="card-body">
+      {% if comments %}<ul class="timeline mb-3">{% for c in comments %}<li>
+        <span class="dot {% if c.is_internal %}tone-bg-amber{% else %}tone-bg-blue{% endif %}"></span>
+        <div class="fw-semibold">{{ c.author.get_full_name|default:"System" }}{% if c.is_internal %} <span class="badge-status tone-amber">Internal note</span>{% endif %}</div>
+        <div class="meta">{{ c.created_at|date:"d M Y H:i" }}</div>
+        <div class="comment">{{ c.body }}</div>
+        {% if c.attachment %}<a class="small" href="{% url 'queries:comment_attachment' q.pk c.pk %}"><i class="bi bi-paperclip"></i> Attachment</a>{% endif %}
+      </li>{% endfor %}</ul>{% else %}<p class="text-muted">No replies yet.</p>{% endif %}
+      {% if q.status != 'CLOSED' %}
+      <form method="post" enctype="multipart/form-data" class="form-section" novalidate>{% csrf_token %}<input type="hidden" name="action" value="reply">
+        {% include "partials/field.html" with field=reply.body %}{% include "partials/field.html" with field=reply.attachment %}
+        {% if reply.is_internal %}{% include "partials/field.html" with field=reply.is_internal %}{% endif %}
+        <button class="btn btn-primary" type="submit"><i class="bi bi-reply"></i>Send</button>
+      </form>{% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    {% if manage %}
+    <div class="card"><div class="card-header"><h2>Manage</h2></div><div class="card-body">
+      <form method="post" novalidate>{% csrf_token %}<input type="hidden" name="action" value="manage">
+        {% include "partials/field.html" with field=manage.status %}{% include "partials/field.html" with field=manage.assigned_to %}{% include "partials/field.html" with field=manage.resolution %}
+        <button class="btn btn-primary w-100" type="submit">Update query</button>
+      </form>
+    </div></div>
+    {% else %}
+    <div class="card"><div class="card-body"><dl class="kv" style="grid-template-columns:1fr">
+      <div><dt>Status</dt><dd>{{ q.get_status_display }}</dd></div><div><dt>Assigned to</dt><dd>{{ q.assigned_to.get_full_name|default:"Not yet assigned" }}</dd></div>
+      <div><dt>Last updated</dt><dd>{{ q.updated_at|date:"d M Y H:i" }}</dd></div></dl></div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

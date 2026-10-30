@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Account — {{ emp.employee_id }}{% endblock %}
+{% block page_title %}Login &amp; permissions{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'employees:admin_users' %}">Employees &amp; managers</a></li><li class="breadcrumb-item active">{{ emp.employee_id }}</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ emp.full_name }}</h1><p>{{ emp.employee_id }} · {{ emp.official_email|default:"no official email on file" }}</p></div>
+  <a class="btn btn-light" href="{% url 'employees:detail' emp.pk 'personal' %}">Open employee master</a></div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-header"><h2>Portal login</h2></div><div class="card-body">
+    {% if account %}
+      <dl class="kv mb-3">
+        <div><dt>Username</dt><dd>{{ account.employee_code }}</dd></div>
+        <div><dt>Status</dt><dd>{% if account.is_active %}Active{% else %}Disabled (employee deactivated){% endif %}</dd></div>
+        <div><dt>Last sign-in</dt><dd>{{ account.last_login|date:"d M Y H:i"|default:"Never" }}</dd></div>
+        <div><dt>Password set</dt><dd>{% if account.has_usable_password %}Yes{% else %}Not yet — awaiting set-up link{% endif %}</dd></div>
+        <div><dt>Sign-in lock</dt><dd>{% if locked %}<span class="text-danger">Locked after failed attempts</span>{% else %}Not locked{% endif %}</dd></div>
+      </dl>
+      {% if nav_is_admin %}
+      <form method="post" class="form-section">{% csrf_token %}<input type="hidden" name="action" value="save">
+        <div class="form-section-title">Role &amp; permission groups</div>
+        <div class="row gx-3">
+          <div class="col-md-6">{% include "partials/field.html" with field=form.role %}</div>
+          <div class="col-md-6">{% include "partials/field.html" with field=form.reason %}</div>
+          <div class="col-12">{% include "partials/field.html" with field=form.is_hr wrap="mb-2" %}{% include "partials/field.html" with field=form.is_finance %}</div>
+        </div>
+        <p class="form-text">Manager approval rights come from reporting relationships (direct reports), not just the role. All changes are audited.</p>
+        <button class="btn btn-primary" type="submit" data-confirm="Save role and permission changes for {{ emp.full_name }}?">Save permissions</button>
+      </form>
+      {% else %}<p class="text-muted">Only administrators can change roles and permission groups.</p>{% endif %}
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="send_setup"><button class="btn btn-light" type="submit" {% if not account.email %}disabled{% endif %}><i class="bi bi-envelope"></i>Email password set-up link</button></form>
+        {% if locked %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="unlock"><button class="btn btn-light" type="submit"><i class="bi bi-unlock"></i>Clear sign-in lock</button></form>{% endif %}
+      </div>
+    {% else %}
+      <p>This employee does not have a portal login yet.</p>
+      <form method="post" class="row g-2 align-items-end">{% csrf_token %}<input type="hidden" name="action" value="create_login">
+        <div class="col-sm-6"><label class="form-label" for="role">Role</label><select id="role" name="role" class="form-select">{% for v, l in roles %}<option value="{{ v }}" {% if v == 'EMPLOYEE' %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div class="col-sm-6"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-person-plus"></i>Create login</button></div>
+      </form>
+      {% if not emp.official_email %}<p class="form-text mt-2 text-danger">Add an official email first so the employee can receive the password set-up link.</p>{% endif %}
+    {% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card"><div class="card-header"><h2>Reporting</h2></div><div class="card-body">
+      <p class="mb-1"><span class="text-muted">Reports to:</span> {{ emp.reporting_manager.full_name|default:"—" }}</p>
+      <p class="mb-3"><span class="text-muted">Direct reports:</span> {{ emp.direct_reports.count }}</p>
+      <a class="btn btn-sm btn-light" href="{% url 'employees:detail' emp.pk 'employment' %}?edit=1">Change reporting manager</a>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

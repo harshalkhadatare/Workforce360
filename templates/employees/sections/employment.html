@@ -1,0 +1,49 @@
+{% extends "employees/sections/_layout.html" %}{% load ui %}
+{% block section %}
+{% if editing %}
+  <div class="callout warn mb-3">Changes to department, designation, manager, status and dates are recorded in employment history with the effective date and reason.</div>
+  {% include "employees/sections/_edit_form.html" %}
+{% else %}
+<dl class="kv">
+  <div><dt>Department</dt><dd>{{ emp.department|default:"—" }}</dd></div>
+  <div><dt>Designation</dt><dd>{{ emp.designation|default:"—" }}</dd></div>
+  <div><dt>Reporting manager</dt><dd>{% if emp.reporting_manager %}{{ emp.reporting_manager.full_name }} ({{ emp.reporting_manager.employee_id }}){% else %}—{% endif %}</dd></div>
+  <div><dt>Date of joining</dt><dd>{{ emp.date_of_joining|date:"d M Y" }}</dd></div>
+  <div><dt>Probation start</dt><dd>{{ emp.effective_probation_start|date:"d M Y" }}</dd></div>
+  <div><dt>Confirmation date</dt><dd class="{% if not emp.confirmation_date %}empty{% endif %}">{{ emp.confirmation_date|date:"d M Y"|default:"Not confirmed" }}</dd></div>
+  <div><dt>Probation status</dt><dd>{{ emp.get_probation_status_display }}</dd></div>
+  <div><dt>Employment type</dt><dd>{{ emp.get_employment_type_display }}</dd></div>
+  <div><dt>Employment status</dt><dd>{% badge emp.employment_status emp.get_employment_status_display %}</dd></div>
+  <div><dt>Work location</dt><dd>{{ emp.work_location|default:"—" }}</dd></div>
+  <div><dt>Working schedule</dt><dd>{{ emp.work_schedule|default:"Default schedule" }}</dd></div>
+  <div><dt>Official email</dt><dd>{{ emp.official_email|default:"—" }}</dd></div>
+  <div><dt>Exit date</dt><dd>{{ emp.exit_date|date:"d M Y"|default:"—" }}</dd></div>
+</dl>
+{% if v.hr %}
+<div class="row g-3 mt-3">
+  {% if not emp.is_confirmed %}
+  <div class="col-lg-6"><div class="form-section">
+    <div class="form-section-title">Confirm employee</div>
+    <p class="form-text">An employee is treated as confirmed only through this authorised action. It affects leave entitlement from the confirmation date.</p>
+    <form method="post" action="{% url 'employees:confirm' emp.pk %}" class="row g-2" data-confirm="Confirm {{ emp.full_name }}? This updates leave entitlement rules for this employee.">
+      {% csrf_token %}
+      <div class="col-sm-5">{% include "partials/field.html" with field=confirm_form.confirmation_date wrap="mb-0" %}</div>
+      <div class="col-sm-7">{% include "partials/field.html" with field=confirm_form.reason wrap="mb-0" %}</div>
+      <div class="col-12"><button class="btn btn-success btn-sm" type="submit"><i class="bi bi-patch-check"></i>Confirm employee</button></div>
+    </form>
+  </div></div>
+  {% endif %}
+  <div class="col-lg-6"><div class="form-section">
+    <div class="form-section-title">{% if emp.is_active %}Deactivate employee{% else %}Reactivate employee{% endif %}</div>
+    <p class="form-text">Records are never deleted. Deactivation disables the login and hides the employee from active lists.</p>
+    <form method="post" action="{% url 'employees:set_active' emp.pk %}" class="row g-2" data-confirm="{% if emp.is_active %}Deactivate{% else %}Reactivate{% endif %} {{ emp.full_name }}?" data-confirm-tone="{% if emp.is_active %}btn-danger{% else %}btn-primary{% endif %}">
+      {% csrf_token %}<input type="hidden" name="active" value="{% if emp.is_active %}0{% else %}1{% endif %}">
+      <div class="col-sm-7"><label class="form-label" for="r-reason">Reason</label><input id="r-reason" class="form-control" name="reason" required maxlength="255"></div>
+      {% if emp.is_active %}<div class="col-sm-5"><label class="form-label" for="r-date">Exit date</label><input id="r-date" class="form-control" type="date" name="effective_date"></div>{% endif %}
+      <div class="col-12"><button class="btn btn-sm {% if emp.is_active %}btn-outline-danger{% else %}btn-light{% endif %}" type="submit">{% if emp.is_active %}Deactivate{% else %}Reactivate{% endif %}</button></div>
+    </form>
+  </div></div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

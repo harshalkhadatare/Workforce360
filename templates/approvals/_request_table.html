@@ -1,0 +1,11 @@
+{% load ui %}{% if items %}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th>Employee</th><th>Request</th><th class="hide-xs">Submitted</th><th>Status</th><th></th></tr></thead>
+  <tbody>{% for r in items %}<tr data-href="{% url 'approvals:detail' r.URL_SLUG r.pk %}">
+    <td><div class="cell-strong">{{ r.employee.full_name }}</div><div class="cell-sub">{{ r.employee.employee_id }}{% if r.employee.department %} · {{ r.employee.department }}{% endif %}</div></td>
+    <td><div class="fw-semibold">{% if r.URL_SLUG == 'leave' and r.is_emergency %}Emergency leave{% else %}{{ r.TYPE_LABEL }}{% endif %}</div><div class="cell-sub">{{ r.summary }}</div></td>
+    <td class="hide-xs">{{ r.submitted_at|date:"d M Y H:i"|default:"System" }}</td>
+    <td>{% badge r.status r.get_status_display %}</td>
+    <td class="text-end"><a class="btn btn-sm btn-light" href="{% url 'approvals:detail' r.URL_SLUG r.pk %}">Open</a></td>
+  </tr>{% endfor %}</tbody></table></div>
+{% else %}{% include "partials/empty.html" with icon=empty_icon|default:"bi-check2-all" title=empty_title|default:"Nothing waiting" %}{% endif %}

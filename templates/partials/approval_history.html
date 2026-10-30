@@ -1,0 +1,13 @@
+{% load ui %}
+{% if history %}
+<ul class="timeline">
+  {% for a in history %}
+  <li>
+    <span class="dot {% if a.action == 'APPROVE' or a.action == 'FORWARD' %}tone-bg-green{% elif a.action == 'REJECT' %}tone-bg-red{% elif a.action == 'REQUEST_INFO' %}tone-bg-blue{% elif a.action == 'CANCEL' %}tone-bg-gray{% else %}tone-bg-amber{% endif %}"></span>
+    <div class="fw-semibold">{{ a.get_action_display }}{% if a.step %} <span class="cell-sub">· {{ a.step|title }} step</span>{% endif %}</div>
+    <div class="meta">{% if a.actor %}{{ a.actor.get_full_name }} ({{ a.actor.employee_code }}){% else %}System{% endif %} · {{ a.created_at|date:"d M Y, H:i" }}</div>
+    {% if a.comment %}<div class="comment">{{ a.comment }}</div>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}{% include "partials/empty.html" with icon="bi-clock" title="No history yet" %}{% endif %}

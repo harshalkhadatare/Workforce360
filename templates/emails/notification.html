@@ -1,0 +1,19 @@
+{% extends "emails/base.html" %}
+{% block body %}
+<p style="margin:0 0 16px;font-size:14px;line-height:1.55;">{{ intro }}</p>
+{% if employee_id %}
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e6e9ef;border-radius:8px;margin-bottom:16px;font-size:13.5px;">
+  <tr><td style="padding:9px 12px;color:#64748b;width:38%;border-bottom:1px solid #f0f2f6;">Employee</td><td style="padding:9px 12px;border-bottom:1px solid #f0f2f6;">{{ employee_name }} ({{ employee_id }})</td></tr>
+  {% if request_type %}<tr><td style="padding:9px 12px;color:#64748b;border-bottom:1px solid #f0f2f6;">Request</td><td style="padding:9px 12px;border-bottom:1px solid #f0f2f6;">{{ request_type }}</td></tr>{% endif %}
+  {% for row in details %}<tr><td style="padding:9px 12px;color:#64748b;border-bottom:1px solid #f0f2f6;">{{ row.0 }}</td><td style="padding:9px 12px;border-bottom:1px solid #f0f2f6;">{{ row.1|linebreaksbr }}</td></tr>{% endfor %}
+  {% if status %}<tr><td style="padding:9px 12px;color:#64748b;">Current status</td><td style="padding:9px 12px;font-weight:600;">{{ status }}</td></tr>{% endif %}
+</table>
+{% elif details %}
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e6e9ef;border-radius:8px;margin-bottom:16px;font-size:13.5px;">
+  {% for row in details %}<tr><td style="padding:9px 12px;color:#64748b;width:38%;border-bottom:1px solid #f0f2f6;">{{ row.0 }}</td><td style="padding:9px 12px;border-bottom:1px solid #f0f2f6;">{{ row.1|linebreaksbr }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+{% if comment %}<div style="background:#f7f8fa;border-left:3px solid #1f5eff;padding:10px 12px;margin-bottom:16px;font-size:13.5px;"><strong>Comments:</strong><br>{{ comment|linebreaksbr }}</div>{% endif %}
+{% if link %}<p style="margin:0 0 18px;"><a href="{{ link }}" style="display:inline-block;background:#1f5eff;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px;">Open in HR portal</a></p>
+<p style="font-size:12px;color:#64748b;margin:0 0 8px;">Sign-in is required. If the button does not work, copy this address: {{ link }}</p>{% endif %}
+{% endblock %}

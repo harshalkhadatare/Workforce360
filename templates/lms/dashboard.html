@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% load ui static %}
+{% block title %}LMS Dashboard{% endblock %}
+{% block page_title %}LMS Dashboard{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">LMS dashboard</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Leave &amp; attendance</h1><p>{{ today|date:"F Y" }} · Leave year {{ today|date:"Y" }}</p></div>
+  <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" href="{% url 'lms:apply' %}"><i class="bi bi-calendar-plus"></i>Apply for Leave</a>
+    <a class="btn btn-light" href="{% url 'attendance:short_leave' %}"><i class="bi bi-hourglass-split"></i>Short Leave</a>
+    <a class="btn btn-light" href="{% url 'attendance:missed_punch' %}"><i class="bi bi-fingerprint"></i>Missed Punch</a>
+    <a class="btn btn-light" href="{% url 'attendance:on_duty' %}"><i class="bi bi-briefcase"></i>On Duty</a></div></div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><a class="card stat" href="{% url 'lms:balance' %}"><span class="stat-label">Available leave balance</span><span class="stat-value">{{ available|num }}</span><span class="stat-sub">days ({{ pending_days|num }} reserved by pending requests)</span></a></div>
+  <div class="col-6 col-lg-3"><a class="card stat" href="{% url 'lms:balance' %}"><span class="stat-label">Leave used this year</span><span class="stat-value">{{ used|num }}</span><span class="stat-sub">days</span></a></div>
+  <div class="col-6 col-lg-3"><a class="card stat" href="{% url 'lms:my_requests' %}?type=leave&status=open"><span class="stat-label">Pending leave requests</span><span class="stat-value">{{ pending_leave }}</span></a></div>
+  <div class="col-6 col-lg-3"><a class="card stat" href="{% url 'lms:my_requests' %}?type=leave&status=REJECTED"><span class="stat-label">Rejected this year</span><span class="stat-value">{{ rejected }}</span></a></div>
+  <div class="col-6 col-lg-3"><a class="card stat" href="{% url 'lms:my_requests' %}?type=short-leave&status=open"><span class="stat-label">Pending short leave</span><span class="stat-value">{{ pending_short }}</span></a></div>
+  <div class="col-6 col-lg-3"><a class="card stat" href="{% url 'lms:my_requests' %}?type=missed-punch&status=open"><span class="stat-label">Pending missed-punch</span><span class="stat-value">{{ pending_missed }}</span></a></div>
+  <div class="col-6 col-lg-3"><a class="card stat" href="{% url 'attendance:half_day_flags' %}"><span class="stat-label">Half-day reviews open</span><span class="stat-value">{{ pending_halfday }}</span></a></div>
+  <div class="col-6 col-lg-3"><div class="card stat"><span class="stat-label">Grace used ({{ today|date:"M" }})</span><span class="stat-value">{{ grace.used }}<span class="fs-6 text-muted"> / {{ grace.limit|default:"—" }} min</span></span>
+    <div class="meter mt-1 {% if grace.limit and grace.used >= grace.limit %}over{% endif %}"><span style="width:{% if grace.limit %}{% widthratio grace.used grace.limit 100 %}{% else %}0{% endif %}%"></span></div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-header"><h2>Leave balance</h2><a class="small" href="{% url 'lms:balance' %}">Ledger</a></div><div class="card-body">
+      {% if balances %}<canvas id="balChart" height="200" role="img" aria-label="Leave balance chart"></canvas>
+      <table class="table mt-3"><thead><tr><th>Type</th><th>Used</th><th>Pending</th><th>Available</th></tr></thead><tbody>
+        {% for b in balances %}<tr><td>{{ b.leave_type.name }}</td><td>{{ b.used|num }}</td><td>{{ b.pending|num }}</td><td class="fw-semibold">{{ b.available|num }}</td></tr>{% endfor %}</tbody></table>
+      {% else %}{% include "partials/empty.html" with icon="bi-pie-chart" title="No leave types configured" %}{% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header"><h2>Attendance discrepancies requiring action</h2><a class="small" href="{% url 'attendance:history' %}">History</a></div>
+      {% if discrepancies %}<div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody>
+        {% for r in discrepancies %}<tr><td><a href="{% url 'attendance:day' r.date|date:'Y-m-d' %}">{{ r.date|date:"D d M" }}</a></td><td>{% badge r.status r.get_status_display %}</td>
+          <td>{% if r.status == 'INCOMPLETE' or r.status == 'ABSENT' %}<a class="btn btn-sm btn-light" href="{% url 'attendance:missed_punch' %}?date={{ r.date|date:'Y-m-d' }}">Report missed punch</a>{% endif %}
+            {% if r.half_day_flag %}{% with rv=r.open_review %}{% if rv %}<a class="btn btn-sm btn-light" href="{% url 'approvals:detail' 'half-day' rv.pk %}">Half-day review</a>{% endif %}{% endwith %}{% endif %}</td></tr>{% endfor %}
+      </tbody></table></div>
+      {% elif has_attendance %}{% include "partials/empty.html" with icon="bi-check2-circle" title="No discrepancies in the last 60 days" %}
+      {% else %}{% include "partials/empty.html" with icon="bi-cloud-arrow-down" title="No attendance data yet" text="Discrepancies will be listed once attendance is imported." %}{% endif %}
+    </div>
+    <div class="card"><div class="card-header"><h2>Approved upcoming leave</h2></div>
+      {% if upcoming %}<ul class="list-plain px-3">{% for l in upcoming %}<li><a class="text-reset" href="{% url 'approvals:detail' 'leave' l.pk %}"><span class="fw-semibold">{{ l.leave_type.name }}</span> <span class="cell-sub">· {{ l.summary }}</span></a></li>{% endfor %}</ul>
+      {% else %}{% include "partials/empty.html" with icon="bi-sun" title="No upcoming approved leave" %}{% endif %}
+    </div>
+  </div>
+</div>
+{{ chart|json_script:"bal-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>HRCharts.balance("balChart", "bal-data");</script>
+{% endblock %}

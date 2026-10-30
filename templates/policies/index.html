@@ -1,0 +1,56 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Policy Settings{% endblock %}
+{% block page_title %}Leave &amp; Attendance Policy Settings{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Policy settings</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Policy settings</h1><p>Versioned, effective-dated rules. Changing a setting creates a new version; records processed earlier keep the version they used.</p></div>
+  <div class="d-flex flex-wrap gap-2"><a class="btn btn-light" href="{% url 'policies:leave_types' %}"><i class="bi bi-tags"></i>Leave types</a><a class="btn btn-light" href="{% url 'policies:holidays' %}"><i class="bi bi-sun"></i>Holidays</a>
+    {% if nav_is_admin %}<a class="btn btn-light" href="{% url 'policies:schedules' %}"><i class="bi bi-clock"></i>Working hours</a>{% endif %}</div></div>
+
+{% for g in groups %}
+<div class="card mb-3">
+  <div class="card-header"><h2>{{ g.label }}</h2>
+    <div class="d-flex align-items-center gap-2">{% if g.unconfirmed %}<span class="pill-hr"><i class="bi bi-hourglass"></i>{{ g.unconfirmed }} awaiting HR confirmation</span>{% elif g.current %}<span class="pill-ok"><i class="bi bi-check2"></i>All interpretations confirmed</span>{% endif %}
+      {% if nav_is_admin %}<a class="btn btn-sm btn-primary" href="{% url 'policies:new_version' g.kind|lower %}"><i class="bi bi-plus-lg"></i>New version</a>{% endif %}</div></div>
+  {% if g.current %}
+  <div class="card-body border-bottom small"><strong>In effect:</strong> {{ g.current.name }} · v{{ g.current.pk }} from {{ g.current.effective_from|date:"d M Y" }}{% if g.current.source_document %} · Source: {{ g.current.source_document }}{% endif %}</div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Rule</th><th>Value</th><th class="hide-xs">Policy basis</th><th>HR confirmation</th></tr></thead>
+    <tbody>{% for key, spec, value, confirmed, conf in g.params %}<tr>
+      <td class="fw-semibold">{{ spec.label }}</td><td><code>{{ value }}</code></td><td class="hide-xs cell-sub">{{ spec.clause }}</td>
+      <td>{% if not spec.needs_hr %}<span class="cell-sub">Stated in policy</span>{% elif confirmed %}<span class="pill-ok" title="{{ conf.note }}"><i class="bi bi-check2"></i>Confirmed {{ conf.confirmed_at|slice:":10" }}</span>
+        {% else %}<span class="pill-hr">Awaiting HR confirmation</span>
+          {% if nav_is_admin %}<form method="post" action="{% url 'policies:confirm_parameter' g.current.pk %}" class="d-flex gap-1 mt-1">{% csrf_token %}<input type="hidden" name="key" value="{{ key }}">
+            <input class="form-control form-control-sm" name="note" placeholder="Confirmed by / reference" aria-label="Confirmation reference" required>
+            <button class="btn btn-sm btn-light" data-confirm="Record that HR has confirmed '{{ spec.label }}' = {{ value }}?">Confirm</button></form>{% endif %}{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% else %}<div class="card-body">{% include "partials/empty.html" with icon="bi-sliders" title="No active version" text="Create and activate a version so calculations can run." %}</div>{% endif %}
+  {% if g.versions %}
+  <details class="card-body border-top"><summary class="fw-semibold">Version history ({{ g.versions|length }})</summary>
+    <div class="table-wrap mt-2"><table class="table"><thead><tr><th>Version</th><th>Effective from</th><th>Scope</th><th>Status</th><th>Reason</th><th>Created</th><th></th></tr></thead><tbody>
+    {% for v in g.versions %}<tr><td>v{{ v.pk }} · {{ v.name }}</td><td>{{ v.effective_from|date:"d M Y" }}</td><td>{% for d in v.departments.all %}{{ d.name }}{% if not forloop.last %}, {% endif %}{% empty %}All{% endfor %}</td>
+      <td>{% badge v.status v.get_status_display %}</td><td class="small">{{ v.change_reason|truncatechars:80 }}</td><td class="small">{{ v.created_at|date:"d M Y" }} · {{ v.created_by.employee_code|default:"setup" }}</td>
+      <td>{% if nav_is_admin %}<form method="post" action="{% url 'policies:activate' v.pk %}" class="d-flex gap-1">{% csrf_token %}<input class="form-control form-control-sm" name="reason" placeholder="Reason" required aria-label="Reason">
+        {% if v.status != 'ACTIVE' %}<button class="btn btn-sm btn-light" name="to" value="ACTIVE" data-confirm="Activate this version?">Activate</button>{% else %}<button class="btn btn-sm btn-light" name="to" value="RETIRED" data-confirm="Retire this version? Dates it covered will fall back to an earlier active version.">Retire</button>{% endif %}</form>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div></details>
+  {% endif %}
+</div>
+{% endfor %}
+
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h2>Approval chains</h2></div>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Request type</th><th>Steps</th></tr></thead><tbody>
+      {% for k, steps, custom in chain_rows %}<tr><td>{{ k|title|cut:"_" }}</td><td>{% for s in steps %}{{ s|title }}{% if not forloop.last %} → {% endif %}{% endfor %} {% if not custom %}<span class="cell-sub">(default)</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+    {% if nav_is_admin %}<div class="card-body border-top"><form method="post" action="{% url 'policies:save_chain' %}" class="row g-2 align-items-end">{% csrf_token %}
+      <div class="col-md-4">{% include "partials/field.html" with field=chain_form.request_type wrap="mb-0" %}</div>
+      <div class="col-4 col-md-2">{% include "partials/field.html" with field=chain_form.step1 wrap="mb-0" %}</div><div class="col-4 col-md-2">{% include "partials/field.html" with field=chain_form.step2 wrap="mb-0" %}</div>
+      <div class="col-4 col-md-2">{% include "partials/field.html" with field=chain_form.step3 wrap="mb-0" %}</div><div class="col-md-2"><button class="btn btn-light w-100">Save</button></div></form>
+      <p class="form-text mt-2 mb-0">Employees never choose their approver: the MANAGER step always goes to their assigned reporting manager (or skips to the next step if none).</p></div>{% endif %}
+  </div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h2>Working schedules</h2>{% if nav_is_admin %}<a class="btn btn-sm btn-light" href="{% url 'policies:schedules' %}">Manage</a>{% endif %}</div>
+    {% if schedules %}<div class="table-wrap"><table class="table"><thead><tr><th>Schedule</th><th>Hours</th><th>Weekly off</th><th>Effective</th></tr></thead><tbody>
+      {% for s in schedules %}<tr><td>{{ s.name }} <span class="cell-sub">{{ s.code }}{% if s.is_default %} · default{% endif %}</span></td><td>{{ s.start_time|time:"H:i" }}–{{ s.end_time|time:"H:i" }}</td><td>{{ s.weekly_off_labels|default:"—" }}</td><td>{{ s.effective_from|date:"d M Y" }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}{% include "partials/empty.html" with icon="bi-clock" title="No schedules" %}{% endif %}
+  </div></div>
+</div>
+{% endblock %}

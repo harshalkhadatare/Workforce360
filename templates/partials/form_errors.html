@@ -1,0 +1,7 @@
+{% if form.non_field_errors %}
+<div class="callout danger mb-3" role="alert">
+  {% for e in form.non_field_errors %}<div><i class="bi bi-exclamation-octagon me-1"></i>{{ e }}</div>{% endfor %}
+</div>
+{% elif form.errors %}
+<div class="callout danger mb-3" role="alert"><i class="bi bi-exclamation-octagon me-1"></i>Please correct the highlighted fields.</div>
+{% endif %}

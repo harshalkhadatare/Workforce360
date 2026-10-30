@@ -1,0 +1,21 @@
+{% extends "employees/sections/_layout.html" %}
+{% block section_actions %}{% endblock %}
+{% block section %}
+{% if items %}
+<div class="table-wrap mb-3"><table class="table">
+  <thead><tr><th>Qualification</th><th>Institution</th><th class="hide-xs">University / board</th><th>Year</th><th>Score</th>{% if can_edit %}<th class="text-end">Actions</th>{% endif %}</tr></thead>
+  <tbody>{% for q in items %}<tr>
+    <td><div class="cell-strong">{{ q.qualification }}</div><div class="cell-sub">{{ q.specialization }}</div></td><td>{{ q.institution }}</td>
+    <td class="hide-xs">{{ q.university_or_board|default:"—" }}</td><td>{{ q.passing_year }}</td><td>{{ q.score|default:"—" }}</td>
+    {% if can_edit %}<td class="text-end text-nowrap"><a class="btn btn-sm btn-light" href="?item={{ q.pk }}">Edit</a>
+      <form method="post" class="d-inline" data-confirm="Remove this qualification record?" data-confirm-tone="btn-danger">{% csrf_token %}<button class="btn btn-sm btn-light" name="delete" value="{{ q.pk }}" aria-label="Delete"><i class="bi bi-trash"></i></button></form></td>{% endif %}
+  </tr>{% endfor %}</tbody></table></div>
+{% else %}{% include "partials/empty.html" with icon="bi-mortarboard" title="No qualifications recorded" %}{% endif %}
+{% if can_edit %}
+<div class="form-section"><div class="form-section-title">{% if editing_item %}Edit qualification{% else %}Add a qualification{% endif %}</div>
+  <form method="post" novalidate>{% csrf_token %}{% include "partials/form_grid.html" %}
+    <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">{% if editing_item %}Save{% else %}Add{% endif %}</button>{% if editing_item %}<a class="btn btn-light" href="?">Cancel</a>{% endif %}</div></form>
+  <p class="form-text mt-2">Supporting certificates can be uploaded under Documents (category "Educational").</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}{% if emergency %}Emergency leave{% else %}Apply for leave{% endif %}{% endblock %}
+{% block page_title %}{% if emergency %}Emergency Leave{% else %}Apply for Leave{% endif %}{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'lms:my_requests' %}">My requests</a></li><li class="breadcrumb-item active">{% if emergency %}Emergency leave{% else %}Apply{% endif %}</li>{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card"><div class="card-header"><h2>{% if emergency %}Emergency leave application{% else %}Leave application{% endif %}</h2>
+      {% if emergency %}<a class="small" href="{% url 'lms:apply' %}">Regular leave</a>{% else %}<a class="small" href="?emergency=1">Unforeseen absence? Emergency leave</a>{% endif %}</div>
+    <div class="card-body">
+      {% if emergency %}
+      <div class="callout warn mb-3">Per the leave policy, a <strong>signed leave form must be submitted within {{ deadline_days }} days immediately after you rejoin duty</strong>; otherwise the leave is treated as non-approved and unpaid. Late forms are flagged for HR review.</div>
+      {% else %}
+      <div class="callout mb-3">Apply at least <strong>{{ notice_days|default:5 }} days</strong> before the leave date. Your request goes to your reporting manager{% if manager %} (<strong>{{ manager.full_name }}</strong>){% endif %} for pre-sanction.</div>
+      {% endif %}
+      <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+        {% if emergency %}<input type="hidden" name="is_emergency" value="1">{% endif %}
+        {% include "partials/form_errors.html" %}
+        <div class="row gx-3">
+          <div class="col-md-6">{% include "partials/field.html" with field=form.leave_type %}</div>
+          <div class="col-md-6">{% include "partials/field.html" with field=form.duration_type %}</div>
+          <div class="col-md-6">{% include "partials/field.html" with field=form.start_date %}</div>
+          <div class="col-md-6">{% include "partials/field.html" with field=form.end_date %}</div>
+          <div class="col-md-6" data-show-when-half>{% include "partials/field.html" with field=form.half_day_session %}</div>
+          {% if emergency %}<div class="col-md-6">{% include "partials/field.html" with field=form.rejoining_date %}</div>{% endif %}
+          <div class="col-12">{% include "partials/field.html" with field=form.reason %}</div>
+          <div class="col-md-6">{% include "partials/field.html" with field=form.attachment %}</div>
+          {% if emergency %}<div class="col-md-6">{% include "partials/field.html" with field=form.signed_form %}</div>{% endif %}
+        </div>
+        <p class="form-text">The number of leave days is calculated on the server, including the weekly-off / holiday rule. You'll see the day-by-day breakdown after submitting.</p>
+        <div class="d-flex gap-2"><button class="btn btn-primary" type="submit"><i class="bi bi-send"></i>Submit request</button><a class="btn btn-light" href="{% url 'lms:dashboard' %}">Cancel</a></div>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card mb-3"><div class="card-header"><h2>Your balance</h2></div>
+      {% if balances %}<ul class="list-plain px-3">{% for b in balances %}<li class="d-flex justify-content-between"><span>{{ b.leave_type.name }}</span><span><strong>{{ b.available|num }}</strong> <span class="cell-sub">available</span></span></li>{% endfor %}</ul>
+      {% else %}<div class="card-body text-muted">No balances yet.</div>{% endif %}</div>
+    <div class="card"><div class="card-body small text-muted">
+      <p class="fw-semibold text-body mb-1">Weekly offs &amp; holidays</p>
+      A weekly off or declared holiday between two leave days counts as leave — unless you were present on the working day immediately before or after it, in which case it is paid. (Leave Policy 001 R2)
+    </div></div>
+  </div>
+</div>
+{% endblock %}

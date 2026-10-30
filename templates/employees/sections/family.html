@@ -1,0 +1,20 @@
+{% extends "employees/sections/_layout.html" %}
+{% block section_actions %}{% endblock %}
+{% block section %}
+{% if items %}
+<div class="table-wrap mb-3"><table class="table">
+  <thead><tr><th>Name</th><th>Relationship</th><th>Date of birth</th><th>Contact</th><th>Flags</th>{% if can_edit %}<th class="text-end">Actions</th>{% endif %}</tr></thead>
+  <tbody>{% for f in items %}<tr>
+    <td class="cell-strong">{{ f.name }}</td><td>{{ f.relationship }}</td><td>{{ f.date_of_birth|date:"d M Y"|default:"—" }}</td><td>{{ f.contact_number|default:"—" }}</td>
+    <td>{% if f.is_dependent %}<span class="badge-status tone-blue">Dependent</span>{% endif %} {% if f.is_nominee %}<span class="badge-status tone-violet">Nominee</span>{% endif %}</td>
+    {% if can_edit %}<td class="text-end text-nowrap"><a class="btn btn-sm btn-light" href="?item={{ f.pk }}">Edit</a>
+      <form method="post" class="d-inline" data-confirm="Remove this family member?" data-confirm-tone="btn-danger">{% csrf_token %}<button class="btn btn-sm btn-light" name="delete" value="{{ f.pk }}" aria-label="Delete"><i class="bi bi-trash"></i></button></form></td>{% endif %}
+  </tr>{% endfor %}</tbody></table></div>
+{% else %}{% include "partials/empty.html" with icon="bi-people" title="No family members recorded" %}{% endif %}
+{% if can_edit %}
+<div class="form-section"><div class="form-section-title">{% if editing_item %}Edit family member{% else %}Add a family member{% endif %}</div>
+  <form method="post" novalidate>{% csrf_token %}{% include "partials/form_grid.html" %}
+    <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">{% if editing_item %}Save{% else %}Add{% endif %}</button>{% if editing_item %}<a class="btn btn-light" href="?">Cancel</a>{% endif %}</div></form>
+</div>
+{% endif %}
+{% endblock %}

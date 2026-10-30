@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Holiday Configuration{% endblock %}
+{% block page_title %}Holiday Configuration{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'policies:index' %}">Policy settings</a></li><li class="breadcrumb-item active">Holidays</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Official holiday calendar {{ year }}</h1><p>Holidays drive the weekly-off/holiday leave rule and attendance status. Deactivate instead of deleting so history stays explainable.</p></div>
+  <div class="d-flex gap-2"><a class="btn btn-light" href="?year={{ year|add:-1 }}">{{ year|add:-1 }}</a><a class="btn btn-light" href="?year={{ year|add:1 }}">{{ year|add:1 }}</a></div></div>
+<div class="row g-3">
+  <div class="col-lg-7"><div class="card">
+    {% if holidays %}<div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Name</th><th>Type</th><th>Location</th><th>Status</th><th></th></tr></thead><tbody>
+      {% for h in holidays %}<tr><td class="cell-strong">{{ h.date|date:"D d M Y" }}</td><td>{{ h.name }}</td><td>{{ h.get_kind_display }}</td><td>{{ h.location|default:"All" }}</td>
+        <td>{% if h.is_active %}<span class="badge-status tone-green">Active</span>{% else %}<span class="badge-status tone-gray">Inactive</span>{% endif %}</td><td><a class="btn btn-sm btn-light" href="?edit={{ h.pk }}&year={{ year }}">Edit</a></td></tr>{% endfor %}</tbody></table></div>
+    {% else %}{% include "partials/empty.html" with icon="bi-sun" title="No holidays configured for this year" %}{% endif %}
+  </div></div>
+  <div class="col-lg-5"><div class="card"><div class="card-header"><h2>{% if edit %}Edit holiday{% else %}Add holiday{% endif %}</h2></div><div class="card-body">
+    <form method="post" novalidate>{% csrf_token %}{% include "partials/form_errors.html" %}{% for f in form %}{% include "partials/field.html" with field=f %}{% endfor %}
+      <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Save</button>{% if edit %}<a class="btn btn-light" href="?year={{ year }}">Cancel</a>{% endif %}</div></form>
+  </div></div></div>
+</div>
+{% endblock %}

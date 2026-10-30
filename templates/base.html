@@ -1,0 +1,117 @@
+{% load static ui %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light only">
+  <title>{% block title %}HR Portal{% endblock %} · {{ COMPANY_SHORT_NAME }}</title>
+    <link rel="stylesheet" href="{% static 'vendor/inter/inter.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<aside class="app-sidebar" aria-label="Main navigation">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">VI</div>
+    <div class="brand-text"><strong>{{ COMPANY_SHORT_NAME }}</strong><span>Employee Self-Service</span></div>
+  </div>
+  <nav class="side-nav">
+    <a class="side-link {% if request.path == '/' %}active{% endif %}" href="{% url 'core:home' %}"><i class="bi bi-house"></i><span>My Dashboard</span></a>
+    <a class="side-link {% nav_active '/notifications/' %}" href="{% url 'notifications:list' %}"><i class="bi bi-bell"></i><span>Notifications</span>{% if nav_unread_notifications %}<span class="count">{{ nav_unread_notifications }}</span>{% endif %}</a>
+
+    <div class="nav-module"><div class="nav-module-title"><i class="bi bi-people"></i><span>Payroll &amp; Employees</span></div></div>
+    {% if nav_has_employee %}<a class="side-link {% nav_active '/employees/me' %}" href="{% url 'employees:me' %}"><i class="bi bi-person-badge"></i><span>My Profile</span></a>{% endif %}
+    {% if nav_is_manager or nav_is_hr %}<a class="side-link {% nav_active '/employees/directory' %}" href="{% url 'employees:directory' %}"><i class="bi bi-person-lines-fill"></i><span>Employee Directory</span></a>{% endif %}
+    <a class="side-link {% nav_active '/queries/' %}" href="{% url 'queries:list' %}"><i class="bi bi-chat-left-text"></i><span>{% if nav_is_hr %}Employee Queries{% else %}My Queries{% endif %}</span></a>
+
+    <div class="nav-module"><div class="nav-module-title"><i class="bi bi-calendar2-check"></i><span>LMS — Leave Management</span></div></div>
+    {% if nav_has_employee %}
+    <a class="side-link {% nav_active '/lms/dashboard' %}" href="{% url 'lms:dashboard' %}"><i class="bi bi-speedometer2"></i><span>LMS Dashboard</span></a>
+    <a class="side-link {% nav_active '/lms/calendar' %}" href="{% url 'lms:calendar' %}"><i class="bi bi-calendar3"></i><span>Attendance Calendar</span></a>
+    <a class="side-link {% nav_active '/attendance/history' '/attendance/day' %}" href="{% url 'attendance:history' %}"><i class="bi bi-clock-history"></i><span>My Attendance</span></a>
+    <a class="side-link {% nav_active '/lms/balance' %}" href="{% url 'lms:balance' %}"><i class="bi bi-pie-chart"></i><span>Leave Balance</span></a>
+    <a class="side-link {% nav_active '/lms/requests' '/lms/apply' '/attendance/short-leave' '/attendance/missed-punch' '/attendance/on-duty' %}" href="{% url 'lms:my_requests' %}"><i class="bi bi-inboxes"></i><span>My Requests</span></a>
+    {% endif %}
+    <a class="side-link {% nav_active '/lms/holidays' %}" href="{% url 'lms:holidays' %}"><i class="bi bi-sun"></i><span>Holiday Calendar</span></a>
+
+    {% if nav_is_manager %}
+    <div class="nav-section">Manager</div>
+    <a class="side-link {% nav_active '/approvals/manager' %}" href="{% url 'approvals:manager_dashboard' %}"><i class="bi bi-diagram-3"></i><span>Manager Dashboard</span></a>
+    <a class="side-link {% nav_active '/approvals/pending' '/approvals/r/' %}" href="{% url 'approvals:pending' %}"><i class="bi bi-check2-square"></i><span>Pending Approvals</span></a>
+    <a class="side-link {% nav_active '/attendance/team' %}" href="{% url 'attendance:team' %}"><i class="bi bi-people"></i><span>Team Attendance</span></a>
+    <a class="side-link {% if request.path == '/lms/calendar/' and request.GET.scope == 'team' %}active{% endif %}" href="{% url 'lms:calendar' %}?scope=team"><i class="bi bi-calendar-week"></i><span>Team Calendar</span></a>
+    {% endif %}
+
+    {% if nav_is_hr %}
+    <div class="nav-section">Administration</div>
+    <a class="side-link {% nav_active '/admin-dashboard' %}" href="{% url 'core:admin_dashboard' %}"><i class="bi bi-grid-1x2"></i><span>Admin Dashboard</span></a>
+    <a class="side-link {% nav_active '/imports/' %}" href="{% url 'imports:upload' %}"><i class="bi bi-file-earmark-arrow-up"></i><span>Attendance Import</span></a>
+    <a class="side-link {% nav_active '/employees/admin' %}" href="{% url 'employees:admin_users' %}"><i class="bi bi-person-gear"></i><span>Employees &amp; Managers</span></a>
+    <a class="side-link {% nav_active '/settings/' %}" href="{% url 'policies:index' %}"><i class="bi bi-sliders"></i><span>Policy Settings</span></a>
+    <a class="side-link {% nav_active '/notifications/admin' %}" href="{% url 'notifications:settings' %}"><i class="bi bi-envelope-at"></i><span>Email &amp; Notifications</span></a>
+    <a class="side-link {% nav_active '/audit/' %}" href="{% url 'audit:list' %}"><i class="bi bi-shield-check"></i><span>Audit Logs</span></a>
+    {% endif %}
+    <a class="side-link {% nav_active '/reports/' %}" href="{% url 'reporting:index' %}"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></a>
+  </nav>
+</aside>
+<div class="sidebar-backdrop"></div>
+
+<div class="app-main">
+  <header class="topbar">
+    <button class="icon-btn" type="button" data-sidebar-toggle aria-label="Toggle navigation" aria-expanded="true"><i class="bi bi-layout-sidebar"></i></button>
+    <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <a class="icon-btn" href="{% url 'notifications:list' %}" aria-label="Notifications ({{ nav_unread_notifications }} unread)"><i class="bi bi-bell"></i>{% if nav_unread_notifications %}<span class="dot">{{ nav_unread_notifications }}</span>{% endif %}</a>
+      <div class="dropdown">
+        <button class="btn btn-light border-0 px-2 d-flex align-items-center gap-2" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="avatar">{{ user.get_short_name|slice:":1"|upper }}</span>
+          <span class="text-start d-none d-md-block lh-sm"><span class="d-block fw-semibold">{{ user.get_full_name }}</span><span class="d-block cell-sub">{{ user.employee_code }} · {{ user.get_role_display }}</span></span>
+          <i class="bi bi-chevron-down small text-muted"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% if nav_has_employee %}<li><a class="dropdown-item" href="{% url 'employees:me' %}"><i class="bi bi-person me-2"></i>My profile</a></li>{% endif %}
+          <li><a class="dropdown-item" href="{% url 'accounts:password_change' %}"><i class="bi bi-key me-2"></i>Change password</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Sign out</button></form></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="content" tabindex="-1">
+    {% block breadcrumbs_wrap %}<nav aria-label="breadcrumb"><ol class="breadcrumb">{% block breadcrumbs %}<li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>{% endblock %}</ol></nav>{% endblock %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<div class="toast-stack" aria-live="polite">
+  {% for message in messages %}
+  <div class="toast-item {{ message.tags }}" role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">
+    <i class="bi {% if message.tags == 'success' %}bi-check-circle text-success{% elif message.tags == 'error' %}bi-exclamation-octagon text-danger{% elif message.tags == 'warning' %}bi-exclamation-triangle text-warning{% else %}bi-info-circle text-primary{% endif %}"></i>
+    <div>{{ message }}</div>
+    <button class="close" type="button" aria-label="Dismiss"><i class="bi bi-x-lg"></i></button>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-body p-4">
+      <h2 class="h5 mb-2" id="confirmTitle">Please confirm</h2>
+      <p class="mb-0 text-muted" data-confirm-text></p>
+    </div>
+    <div class="modal-footer border-0 pt-0 px-4 pb-4">
+      <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+      <button type="button" class="btn btn-primary" data-confirm-ok>Confirm</button>
+    </div>
+  </div></div>
+</div>
+
+<script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/app.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

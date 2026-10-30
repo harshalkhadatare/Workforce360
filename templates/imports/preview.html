@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Preview — {{ batch.batch_code }}{% endblock %}
+{% block page_title %}Import Preview &amp; Validation{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'imports:upload' %}">Attendance import</a></li><li class="breadcrumb-item active">{{ batch.batch_code }} preview</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ batch.batch_code }} · {{ batch.original_name }}</h1><p>Sheet “{{ batch.sheet_name }}” · {{ batch.get_format_mode_display }}</p></div>
+  <a class="btn btn-light" href="{% url 'imports:mapping' batch.pk %}"><i class="bi bi-arrow-left"></i>Change mapping</a></div>
+{% include "imports/_steps.html" with step=4 %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-4 col-xl-2"><div class="card stat"><span class="stat-label">Rows read</span><span class="stat-value">{{ batch.total_rows }}</span></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card stat"><span class="stat-label"><span class="badge-status tone-green">Will import</span></span><span class="stat-value">{{ batch.valid_rows }}</span><span class="stat-sub">{{ batch.warning_rows }} with warnings</span></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card stat"><span class="stat-label"><span class="badge-status tone-red">Rejected</span></span><span class="stat-value">{{ batch.error_rows }}</span></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card stat"><span class="stat-label"><span class="badge-status tone-gray">Duplicates</span></span><span class="stat-value">{{ batch.duplicate_rows }}</span></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card stat"><span class="stat-label"><span class="badge-status tone-violet">Conflicts</span></span><span class="stat-value">{{ batch.conflict_rows }}</span><span class="stat-sub">reconcile after import</span></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="card stat"><span class="stat-label">Employees</span><span class="stat-value">{{ employees }}</span></div></div>
+</div>
+{% if unknown_ids %}<div class="callout danger mb-3"><strong>Unknown employee IDs:</strong> {{ unknown_ids|join:", " }}. Create these employees (or correct the file) — rejected rows can be retried after import.</div>{% endif %}
+{% if batch.same_file_batch %}<div class="callout warn mb-3">This exact file was imported before as <a href="{% url 'imports:results' batch.same_file_batch_id %}">{{ batch.same_file_batch.batch_code }}</a>.</div>{% endif %}
+<div class="card mb-3">
+  <div class="card-body border-bottom"><nav class="d-flex flex-wrap gap-2" aria-label="Row filter">
+    <a class="btn btn-sm {% if show == 'problems' %}btn-primary{% else %}btn-light{% endif %}" href="?show=problems">Problems only</a>
+    <a class="btn btn-sm {% if show == 'all' %}btn-primary{% else %}btn-light{% endif %}" href="?show=all">All rows</a>
+    <a class="btn btn-sm {% if show == 'ERROR' %}btn-primary{% else %}btn-light{% endif %}" href="?show=ERROR">Rejected</a>
+    <a class="btn btn-sm {% if show == 'WARNING' %}btn-primary{% else %}btn-light{% endif %}" href="?show=WARNING">Warnings</a>
+    <a class="btn btn-sm {% if show == 'DUPLICATE' %}btn-primary{% else %}btn-light{% endif %}" href="?show=DUPLICATE">Duplicates</a>
+    <a class="btn btn-sm {% if show == 'CONFLICT' %}btn-primary{% else %}btn-light{% endif %}" href="?show=CONFLICT">Conflicts</a>
+  </nav></div>
+  {% include "imports/_rows.html" %}
+</div>
+<div class="card"><div class="card-header"><h2>Step 5 — Confirm</h2></div><div class="card-body">
+  <form method="post" action="{% url 'imports:confirm' batch.pk %}" class="d-flex flex-wrap gap-3 align-items-center">{% csrf_token %}
+    <div class="form-check"><input class="form-check-input" type="checkbox" name="confirm" value="yes" id="cf" required>
+      <label class="form-check-label" for="cf">I have reviewed the preview. Import <strong>{{ batch.valid_rows }}</strong> valid row(s); <strong>{{ batch.error_rows }}</strong> will be rejected, <strong>{{ batch.duplicate_rows }}</strong> skipped as duplicates and <strong>{{ batch.conflict_rows }}</strong> held for reconciliation.</label></div>
+    <button class="btn btn-primary" type="submit" {% if not batch.valid_rows and not batch.conflict_rows %}disabled{% endif %} data-confirm="Import {{ batch.valid_rows }} rows now? The import runs as a single transaction."><i class="bi bi-database-check"></i>Import</button>
+    <button class="btn btn-light" type="submit" name="discard" value="1" formnovalidate data-confirm="Discard this upload? Nothing will be imported." data-confirm-tone="btn-danger">Discard</button>
+  </form>
+</div></div>
+{% endblock %}

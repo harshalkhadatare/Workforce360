@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Queries{% endblock %}
+{% block page_title %}{% if is_hr %}Employee Queries{% else %}My Queries{% endif %}{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Queries</li>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{% if is_hr %}Employee queries{% else %}My queries{% endif %}</h1><p>{% if is_hr %}Assign, respond to and resolve employee questions.{% else %}Questions to HR about attendance, leave, payroll or your records.{% endif %}</p></div>
+  {% if nav_has_employee %}<a class="btn btn-primary" href="{% url 'queries:create' %}"><i class="bi bi-plus-lg"></i>Raise a query</a>{% endif %}
+</div>
+<div class="card">
+  <div class="card-body border-bottom"><form class="filters" method="get">
+    <div><label class="form-label" for="st">Status</label><select id="st" name="status" class="form-select" data-autosubmit><option value="">All</option><option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>Open (unresolved)</option>{% for v, l in statuses %}<option value="{{ v }}" {% if request.GET.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label class="form-label" for="cat">Category</label><select id="cat" name="category" class="form-select" data-autosubmit><option value="">All</option>{% for v, l in categories %}<option value="{{ v }}" {% if request.GET.category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    {% if is_hr %}<div><label class="form-label" for="qq">Search</label><input id="qq" class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Subject or employee"></div>
+    <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="mine" value="1" id="mine" {% if request.GET.mine %}checked{% endif %} data-autosubmit><label class="form-check-label" for="mine">Assigned to me</label></div>{% endif %}
+    <div><button class="btn btn-light" type="submit">Apply</button></div>
+  </form></div>
+  {% if page_obj.object_list %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Ref</th><th>Subject</th>{% if is_hr %}<th>Employee</th>{% endif %}<th>Category</th><th>Status</th><th class="hide-xs">Assigned</th><th class="hide-xs">Updated</th></tr></thead>
+    <tbody>{% for q in page_obj %}<tr data-href="{% url 'queries:detail' q.pk %}">
+      <td class="cell-strong">{{ q.reference }}</td><td>{{ q.subject }}</td>{% if is_hr %}<td>{{ q.employee.full_name }}<div class="cell-sub">{{ q.employee.employee_id }}</div></td>{% endif %}
+      <td>{{ q.get_category_display }}</td><td>{% badge q.status q.get_status_display %}</td><td class="hide-xs">{{ q.assigned_to.get_full_name|default:"—" }}</td><td class="hide-xs">{{ q.updated_at|date:"d M Y H:i" }}</td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% include "partials/pagination.html" %}
+  {% else %}{% include "partials/empty.html" with icon="bi-chat-left-text" title="No queries" text="Raised queries and their status will appear here." %}{% endif %}
+</div>
+{% endblock %}

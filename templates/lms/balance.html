@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% load ui static %}
+{% block title %}Leave balance{% endblock %}
+{% block page_title %}Leave Balance{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Leave balance</li>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Leave balance {{ year }}</h1><p>{{ emp.full_name }} ({{ emp.employee_id }}) · Leave year 1 Jan – 31 Dec</p></div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-light" href="?year={{ year|add:-1 }}{% if not is_self %}&employee={{ emp.pk }}{% endif %}"><i class="bi bi-chevron-left"></i>{{ year|add:-1 }}</a>
+    <a class="btn btn-light" href="?year={{ year|add:1 }}{% if not is_self %}&employee={{ emp.pk }}{% endif %}">{{ year|add:1 }}<i class="bi bi-chevron-right"></i></a>
+    <a class="btn btn-light" href="{% url 'reporting:report' 'my-leave-balance' %}?year={{ year }}{% if not is_self %}&employee={{ emp.pk }}{% endif %}&format=xlsx"><i class="bi bi-download"></i>Excel</a>
+  </div>
+</div>
+<div class="callout mb-3"><i class="bi bi-info-circle me-1"></i><strong>How the balance works:</strong> every credit, debit, reversal and adjustment is a ledger entry. <em>Closing balance</em> is the sum of the ledger. Pending requests are <em>reserved</em> — shown separately and subtracted from <em>Available</em> — but they are not debited until approved.</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-7"><div class="card h-100">
+    {% if balances %}<div class="table-wrap"><table class="table">
+      <thead><tr><th>Leave type</th><th>Opening</th><th>Credited</th><th>Used</th><th>Adjustments</th><th>Closing</th><th>Pending</th><th>Available</th></tr></thead>
+      <tbody>{% for b in balances %}<tr><td class="cell-strong">{{ b.leave_type.name }}</td><td>{{ b.opening|num }}</td><td>{{ b.credited|num }}</td><td>{{ b.used|num }}</td><td>{{ b.adjustments|num }}</td>
+        <td class="fw-semibold">{{ b.closing|num }}</td><td>{{ b.pending|num }}</td><td class="fw-semibold text-primary">{{ b.available|num }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}{% include "partials/empty.html" with icon="bi-pie-chart" title="No leave types with balances configured" %}{% endif %}
+  </div></div>
+  <div class="col-lg-5"><div class="card h-100"><div class="card-body">{% if balances %}<canvas id="balChart" height="170" role="img" aria-label="Leave balance chart"></canvas>{% endif %}</div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><h2>Leave ledger {{ year }}</h2><span class="cell-sub">{{ ledger|length }} entr{{ ledger|length|pluralize:"y,ies" }}</span></div>
+  {% if ledger %}<div class="table-wrap"><table class="table"><thead><tr><th>Effective</th><th>Type</th><th>Entry</th><th class="text-end">Quantity</th><th>Reason</th><th class="hide-xs">Reference</th><th class="hide-xs">By</th></tr></thead><tbody>
+    {% for e in ledger %}<tr><td>{{ e.effective_date|date:"d M Y" }}</td><td>{{ e.leave_type.code }}</td><td>{{ e.get_entry_type_display }}</td>
+      <td class="text-end fw-semibold {% if e.quantity < 0 %}text-danger{% else %}text-success{% endif %}">{% if e.quantity > 0 %}+{% endif %}{{ e.quantity|num }}</td>
+      <td>{{ e.reason }}</td><td class="hide-xs">{% if e.leave_request %}<a href="{% url 'approvals:detail' 'leave' e.leave_request_id %}">Request #{{ e.leave_request_id }}</a>{% else %}—{% endif %}</td>
+      <td class="hide-xs">{{ e.created_by.employee_code|default:"System" }}<div class="cell-sub">{{ e.created_at|date:"d M Y H:i" }}</div></td></tr>{% endfor %}
+  </tbody></table></div>{% else %}{% include "partials/empty.html" with icon="bi-journal" title="No ledger entries for this year" text="Entitlement credits are posted by HR from the configured leave policy." %}{% endif %}
+</div>
+
+{% if is_hr %}
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h2>Policy entitlement for {{ year }}</h2></div><div class="card-body">
+    {% if preview.0 %}<ul class="list-plain mb-3">{% for p in preview %}<li><div class="d-flex justify-content-between"><span class="fw-semibold">{{ p.basis|title }} · {{ p.period_key }}</span><span>{{ p.quantity|num }} day(s)</span></div><div class="cell-sub">{{ p.explanation }}</div></li>{% endfor %}</ul>
+    {% elif preview %}<p class="text-danger">{{ preview }}</p>{% else %}<p class="text-muted">No entitlement is due for this employee/year yet (e.g. not confirmed, or within the first probation months).</p>{% endif %}
+    {% if entitlements %}<p class="small text-muted">Already posted: {% for e in entitlements %}{{ e.period_key }} ({{ e.quantity|num }}){% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="entitlements"><button class="btn btn-primary btn-sm" data-confirm="Post any entitlement credits that are due and not yet posted? Each credit posts only once.">Post due entitlements</button></form>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h2>Manual ledger entry</h2></div><div class="card-body">
+    <form method="post" novalidate data-confirm="Post this ledger entry? It cannot be edited afterwards (post a reversing adjustment if needed).">{% csrf_token %}<input type="hidden" name="action" value="adjust">
+      {% include "partials/form_grid.html" with form=adj_form %}<button class="btn btn-light" type="submit">Post entry</button></form>
+  </div></div></div>
+</div>
+{% endif %}
+{{ chart|json_script:"bal-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>HRCharts.balance("balChart", "bal-data");</script>
+{% endblock %}

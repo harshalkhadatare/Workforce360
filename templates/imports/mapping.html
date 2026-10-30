@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Map columns — {{ batch.batch_code }}{% endblock %}
+{% block page_title %}Attendance Import &amp; Processing{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'imports:upload' %}">Attendance import</a></li><li class="breadcrumb-item active">{{ batch.batch_code }}</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ batch.batch_code }} · {{ batch.original_name }}</h1><p>Step 2 — identify the format and map the columns.</p></div></div>
+{% include "imports/_steps.html" with step=2 %}
+<div class="card mb-3"><div class="card-body">
+  <form method="get" class="filters">
+    <div><label class="form-label" for="sh">Worksheet</label><select id="sh" class="form-select" name="sheet" data-autosubmit>{% for s in batch.sheet_names %}<option value="{{ s }}" {% if s == batch.sheet_name %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+    <div><label class="form-label" for="hr">Header row</label><input id="hr" class="form-control" type="number" min="1" max="50" name="header_row" value="{{ batch.header_row }}"></div>
+    <div><button class="btn btn-light" type="submit">Reload columns</button></div>
+  </form>
+  <p class="form-text mt-2 mb-0">Detected columns: {% for c in columns %}<code>{{ c }}</code>{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-danger">none — check the worksheet and header row</span>{% endfor %}</p>
+</div></div>
+{% if sample_rows %}
+<div class="card mb-3"><div class="card-header"><h2>First rows of “{{ batch.sheet_name }}”</h2></div>
+  <div class="table-wrap"><table class="table"><thead><tr>{% for c in columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for r in sample_rows %}<tr>{% for v in r|slice:":20" %}<td class="cell-sub">{{ v|truncatechars:24 }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+<div class="card"><div class="card-header"><h2>Column mapping</h2></div><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/form_errors.html" %}
+    <input type="hidden" name="sheet_name" value="{{ batch.sheet_name }}"><input type="hidden" name="header_row" value="{{ batch.header_row }}">
+    <div class="row gx-3">
+      <div class="col-md-6">{% include "partials/field.html" with field=form.format_mode %}</div>
+      <div class="col-md-6 d-flex align-items-end">{% include "partials/field.html" with field=form.dayfirst %}</div>
+      {% for key, label, req in system_fields %}{% for f in form %}{% if f.name == "map_"|add:key %}<div class="col-md-4">{% include "partials/field.html" with field=f %}</div>{% endif %}{% endfor %}{% endfor %}
+      <div class="col-md-6">{% include "partials/field.html" with field=form.save_template_as %}</div>
+    </div>
+    <p class="form-text">Daily layout needs Employee ID, Attendance date and In and/or Out time. Punch-log layout needs Employee ID and Punch timestamp (Punch type recommended).</p>
+    <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i>Validate &amp; preview</button>
+  </form>
+</div></div>
+{% endblock %}

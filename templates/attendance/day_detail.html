@@ -1,0 +1,76 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Attendance {{ d|date:"d M Y" }}{% endblock %}
+{% block page_title %}Daily Attendance Details{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'attendance:history' %}{% if not is_self %}?employee={{ emp.pk }}{% endif %}">Attendance</a></li><li class="breadcrumb-item active">{{ d|date:"d M Y" }}</li>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ d|date:"l, d F Y" }}</h1><p>{{ emp.full_name }} ({{ emp.employee_id }}){% if emp.department %} · {{ emp.department }}{% endif %}</p></div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-light" href="{% url 'attendance:day' prev_day|date:'Y-m-d' %}{% if not is_self %}?employee={{ emp.pk }}{% endif %}" aria-label="Previous day"><i class="bi bi-chevron-left"></i></a>
+    <a class="btn btn-light" href="{% url 'attendance:day' next_day|date:'Y-m-d' %}{% if not is_self %}?employee={{ emp.pk }}{% endif %}" aria-label="Next day"><i class="bi bi-chevron-right"></i></a>
+    {% if is_self %}<a class="btn btn-primary" href="{% url 'attendance:missed_punch' %}?date={{ d|date:'Y-m-d' }}"><i class="bi bi-fingerprint"></i>Report missed punch</a>{% endif %}
+  </div>
+</div>
+
+{% if not rec %}
+<div class="card mb-3"><div class="card-body">{% include "partials/empty.html" with icon="bi-cloud-arrow-down" title="Attendance data has not been imported for this date" text="Details will appear once HR imports the punch data covering this day. A missing record is not treated as absence." %}</div></div>
+{% else %}
+<div class="card mb-3">
+  <div class="card-header"><h2>Summary</h2>{% badge rec.status rec_status %}</div>
+  <div class="card-body">
+    <div class="day-grid mb-3">
+      <div class="day-cell"><div class="lbl">Scheduled shift</div><div class="val">{{ rec.scheduled_start|time:"H:i" }} – {{ rec.scheduled_end|time:"H:i" }}</div><div class="cell-sub">{{ rec.schedule.name }}</div></div>
+      <div class="day-cell"><div class="lbl">Actual In</div><div class="val">{{ rec.first_in|time:"H:i:s"|default:"Missing" }}</div></div>
+      <div class="day-cell"><div class="lbl">Actual Out</div><div class="val">{{ rec.last_out|time:"H:i:s"|default:"Missing" }}</div></div>
+      <div class="day-cell"><div class="lbl">Worked duration</div><div class="val">{{ rec.worked_minutes|hhmm }}</div></div>
+      <div class="day-cell"><div class="lbl">Late arrival</div><div class="val">{{ rec.late_minutes }} min</div></div>
+      <div class="day-cell"><div class="lbl">Early departure</div><div class="val">{{ rec.early_minutes }} min</div></div>
+      <div class="day-cell"><div class="lbl">Grace used today</div><div class="val">{{ rec.grace_minutes_used }} min</div></div>
+      <div class="day-cell"><div class="lbl">Month grace (cumulative)</div><div class="val">{{ rec.month_grace_cumulative }} min</div></div>
+    </div>
+    {% if rec.explanation %}<div class="explain mb-2"><i class="bi bi-calculator me-1"></i><strong>Calculation:</strong> {{ rec.explanation }}</div>{% endif %}
+    {% if rec.notes %}<div class="callout mb-2">{{ rec.notes }}</div>{% endif %}
+    <dl class="kv mt-3">
+      <div><dt>Attendance status</dt><dd>{{ rec_status }}</dd></div>
+      <div><dt>Leave</dt><dd>{% if leave %}{{ leave.leave_type.name }} — {{ leave.get_status_display }}{% else %}—{% endif %}</dd></div>
+      <div><dt>Short leave</dt><dd>{% for s in short_leaves %}{{ s.start_time|time:"H:i" }}–{{ s.end_time|time:"H:i" }} ({{ s.get_status_display }}){% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
+      <div><dt>Missed-punch request</dt><dd>{% for m in missed_punches %}<a href="{% url 'approvals:detail' 'missed-punch' m.pk %}">{{ m.get_issue_type_display }} — {{ m.get_status_display }}</a>{% empty %}—{% endfor %}</dd></div>
+      <div><dt>On duty</dt><dd>{% for o in on_duty %}{{ o.destination }} ({{ o.get_status_display }}){% empty %}—{% endfor %}</dd></div>
+      <div><dt>Half-day review</dt><dd>{% if review %}<a href="{% url 'approvals:detail' 'half-day' review.pk %}">{{ review.get_status_display }}{% if review.outcome %} · {{ review.get_outcome_display }}{% endif %}</a>{% else %}—{% endif %}</dd></div>
+      <div><dt>Source</dt><dd>{% if rec.is_adjusted %}Imported punches + approved adjustment{% elif rec.punch_count %}Imported punches ({{ rec.punch_count }}){% else %}No punches{% endif %}</dd></div>
+      <div><dt>Policy version applied</dt><dd>{{ rec.policy_version|default:"—" }}</dd></div>
+    </dl>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header"><h2>Raw punches</h2><span class="cell-sub">Original imported evidence — never edited</span></div>
+      {% if punches %}<div class="table-wrap"><table class="table"><thead><tr><th>Time</th><th>Type</th><th>Device</th>{% if can_view_punch_source %}<th>Batch</th>{% endif %}<th>State</th></tr></thead><tbody>
+        {% for p in punches %}<tr><td>{{ p.punch_time|time:"H:i:s" }}</td><td>{{ p.get_punch_type_display }}</td><td>{{ p.device|default:"—" }}</td>{% if can_view_punch_source %}<td>{% if p.batch %}<a href="{% url 'imports:results' p.batch_id %}">{{ p.batch.batch_code }}</a>{% else %}—{% endif %}</td>{% endif %}
+          <td>{% if p.is_void %}<span class="badge-status tone-gray" title="{{ p.void_reason }}">Voided</span>{% else %}<span class="badge-status tone-green">Live</span>{% endif %}</td></tr>{% endfor %}
+      </tbody></table></div>{% else %}{% include "partials/empty.html" with icon="bi-fingerprint" title="No punches recorded" %}{% endif %}
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-header"><h2>Correction history</h2></div>
+      {% if adjustments %}<ul class="list-plain px-3">{% for a in adjustments %}<li>
+        <div class="d-flex justify-content-between"><span class="fw-semibold">{{ a.get_source_display }}</span>{% if a.is_active %}<span class="badge-status tone-green">Active</span>{% else %}<span class="badge-status tone-gray">Superseded</span>{% endif %}</div>
+        <div class="cell-sub">In {{ a.original_in|time:"H:i"|default:"—" }} → {{ a.corrected_in|time:"H:i"|default:"(unchanged)" }} · Out {{ a.original_out|time:"H:i"|default:"—" }} → {{ a.corrected_out|time:"H:i"|default:"(unchanged)" }}</div>
+        <div class="cell-sub">{{ a.created_at|date:"d M Y H:i" }} by {{ a.approved_by.employee_code|default:"—" }} — {{ a.reason }}</div></li>{% endfor %}</ul>
+      {% else %}{% include "partials/empty.html" with icon="bi-pencil-square" title="No corrections" %}{% endif %}
+    </div>
+    {% if corr_form %}
+    <div class="card"><div class="card-header"><h2>Administrator correction</h2></div><div class="card-body">
+      <p class="form-text">Creates an audited adjustment. Raw punches remain unchanged.</p>
+      <form method="post" novalidate data-confirm="Record this attendance correction? It will be audited.">{% csrf_token %}
+        {% include "partials/form_errors.html" with form=corr_form %}
+        <div class="row gx-2"><div class="col-6">{% include "partials/field.html" with field=corr_form.corrected_in %}</div><div class="col-6">{% include "partials/field.html" with field=corr_form.corrected_out %}</div></div>
+        {% include "partials/field.html" with field=corr_form.reason %}
+        <button class="btn btn-primary" type="submit">Save correction</button></form>
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

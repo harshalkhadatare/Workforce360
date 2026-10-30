@@ -1,0 +1,11 @@
+<ol class="d-flex flex-wrap gap-2 list-unstyled mb-3" aria-label="Import progress">
+  {% with s=step|default:1 %}
+  <li class="badge-status {% if s > 1 %}tone-green{% elif s == 1 %}tone-blue{% else %}tone-gray{% endif %}">1. Upload</li>
+  <li class="badge-status {% if s > 2 %}tone-green{% elif s == 2 %}tone-blue{% else %}tone-gray{% endif %}">2. Identify format</li>
+  <li class="badge-status {% if s > 3 %}tone-green{% elif s == 3 %}tone-blue{% else %}tone-gray{% endif %}">3. Preview</li>
+  <li class="badge-status {% if s > 4 %}tone-green{% elif s == 4 %}tone-blue{% else %}tone-gray{% endif %}">4. Validate</li>
+  <li class="badge-status {% if s > 5 %}tone-green{% elif s == 5 %}tone-blue{% else %}tone-gray{% endif %}">5. Confirm</li>
+  <li class="badge-status {% if s > 6 %}tone-green{% elif s == 6 %}tone-blue{% else %}tone-gray{% endif %}">6. Import</li>
+  <li class="badge-status {% if s == 7 %}tone-blue{% else %}tone-gray{% endif %}">7. Results</li>
+  {% endwith %}
+</ol>

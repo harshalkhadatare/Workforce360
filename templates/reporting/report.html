@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}{{ rep.title }}{% endblock %}
+{% block page_title %}{{ rep.title }}{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'reporting:index' %}">Reports</a></li><li class="breadcrumb-item active">{{ rep.title }}</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ rep.title }}</h1><p>{{ rep.description }}</p></div>
+  <div class="d-flex gap-2"><a class="btn btn-light" href="{% qs format='csv' %}"><i class="bi bi-filetype-csv"></i>CSV</a><a class="btn btn-primary" href="{% qs format='xlsx' %}"><i class="bi bi-file-earmark-excel"></i>Excel</a></div></div>
+<div class="card">
+  {% if rep.filters %}<div class="card-body border-bottom"><form class="filters" method="get">
+    {% if request.GET.employee %}<input type="hidden" name="employee" value="{{ request.GET.employee }}">{% endif %}
+    {% if 'month' in rep.filters %}<div><label class="form-label" for="fm">Month</label><input id="fm" class="form-control" type="month" name="month" value="{% if request.GET.month %}{{ request.GET.month }}{% else %}{{ today|date:'Y-m' }}{% endif %}"></div>{% endif %}
+    {% if 'year' in rep.filters %}<div><label class="form-label" for="fy">Year</label><input id="fy" class="form-control" type="number" name="year" min="2000" max="2100" value="{{ request.GET.year|default:today.year }}"></div>{% endif %}
+    {% if 'from' in rep.filters %}<div><label class="form-label" for="ff">From</label><input id="ff" class="form-control" type="date" name="from" value="{{ request.GET.from }}"></div>
+      <div><label class="form-label" for="ft">To</label><input id="ft" class="form-control" type="date" name="to" value="{{ request.GET.to }}"></div>{% endif %}
+    {% if 'department' in rep.filters %}<div><label class="form-label" for="fd">Department</label><select id="fd" class="form-select" name="department"><option value="">All</option>{% for d in departments %}<option value="{{ d.pk }}" {% if request.GET.department == d.pk|stringformat:'s' %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>{% endif %}
+    {% if rep.audience == 'manager' and nav_is_hr %}<div><label class="form-label" for="fs">Scope</label><select id="fs" class="form-select" name="scope"><option value="">My team</option><option value="company" {% if request.GET.scope == 'company' %}selected{% endif %}>Company</option></select></div>{% endif %}
+    <div><button class="btn btn-primary" type="submit">Run report</button></div>
+  </form></div>{% endif %}
+  {% if rows %}
+  <div class="card-body py-2 border-bottom cell-sub">{{ total }} row{{ total|pluralize }}{% if total > 500 %} — showing the first 500; export for the full set{% endif %}</div>
+  <div class="table-wrap"><table class="table"><thead><tr>{% for c in cols %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in rows %}<tr>{% for v in row %}<td class="small">{{ v|num|default_if_none:"" }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+  {% else %}{% include "partials/empty.html" with icon="bi-table" title="No data for these filters" %}{% endif %}
+</div>
+{% endblock %}

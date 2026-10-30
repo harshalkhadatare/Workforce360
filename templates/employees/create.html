@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Create employee{% endblock %}
+{% block page_title %}Create employee{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'employees:directory' %}">Employee directory</a></li><li class="breadcrumb-item active">Create</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Create employee</h1><p>Enter the core employee master record. Other sections (contact, identity, bank, family, documents) can be completed afterwards.</p></div></div>
+<div class="card"><div class="card-body">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partials/form_grid.html" %}
+    <div class="callout mb-3"><i class="bi bi-envelope me-1"></i>No password is ever set or emailed by HR. The employee receives a time-limited, single-use link to set their own password.</div>
+    <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Create employee</button><a class="btn btn-light" href="{% url 'employees:directory' %}">Cancel</a></div>
+  </form>
+</div></div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Leave Types{% endblock %}
+{% block page_title %}Leave Type Configuration{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'policies:index' %}">Policy settings</a></li><li class="breadcrumb-item active">Leave types</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Leave types</h1><p>Exactly one type can receive the policy entitlement (22 days / probation credits). Types without a balance (e.g. leave without pay) are flagged for payroll review when approved.</p></div></div>
+<div class="row g-3">
+  <div class="col-lg-7"><div class="card">
+    {% if types %}<div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Name</th><th>Balance</th><th>Paid</th><th>Half day</th><th>Entitlement</th><th>Status</th><th></th></tr></thead><tbody>
+      {% for t in types %}<tr><td class="cell-strong">{{ t.code }}</td><td>{{ t.name }}</td><td>{{ t.tracks_balance|yesno:"Tracked,—" }}</td><td>{{ t.is_paid|yesno:"Yes,No" }}</td><td>{{ t.allow_half_day|yesno:"Yes,No" }}</td>
+        <td>{% if t.is_policy_entitlement %}<span class="badge-status tone-blue">Policy</span>{% endif %}</td><td>{% if t.is_active %}<span class="badge-status tone-green">Active</span>{% else %}<span class="badge-status tone-gray">Inactive</span>{% endif %}</td>
+        <td><a class="btn btn-sm btn-light" href="?edit={{ t.pk }}">Edit</a></td></tr>{% endfor %}</tbody></table></div>
+    {% else %}{% include "partials/empty.html" with icon="bi-tags" title="No leave types" %}{% endif %}
+  </div></div>
+  <div class="col-lg-5"><div class="card"><div class="card-header"><h2>{% if edit %}Edit {{ edit.name }}{% else %}Add leave type{% endif %}</h2></div><div class="card-body">
+    <form method="post" novalidate>{% csrf_token %}{% include "partials/form_errors.html" %}{% for f in form %}{% include "partials/field.html" with field=f %}{% endfor %}
+      <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Save</button>{% if edit %}<a class="btn btn-light" href="?">Cancel</a>{% endif %}</div></form>
+  </div></div></div>
+</div>
+{% endblock %}

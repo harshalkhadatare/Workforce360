@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="color-scheme" content="light only"><title>{{ heading }}</title></head>
+<body style="margin:0;padding:0;background:#f5f7fa;font-family:Segoe UI,Arial,sans-serif;color:#0f1d33;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:24px 12px;"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid #e6e9ef;border-radius:12px;">
+  <tr><td style="padding:20px 28px;border-bottom:1px solid #e6e9ef;">
+    <table role="presentation"><tr>
+      <td style="width:34px;height:34px;background:#1f5eff;border-radius:8px;color:#fff;font-weight:700;font-size:13px;text-align:center;">VI</td>
+      <td style="padding-left:10px;font-weight:600;font-size:14px;">{{ company_name }}<br><span style="font-weight:400;color:#64748b;font-size:12px;">HR Portal</span></td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="padding:26px 28px 8px;">
+    <h1 style="font-size:19px;margin:0 0 14px;color:#0f1d33;">{{ heading }}</h1>
+    {% if recipient_name %}<p style="margin:0 0 12px;font-size:14px;">Hello {{ recipient_name }},</p>{% endif %}
+    {% block body %}{% endblock %}
+  </td></tr>
+  <tr><td style="padding:18px 28px 24px;border-top:1px solid #e6e9ef;font-size:12px;color:#64748b;">
+    Questions? {% if helpdesk_email %}Contact HR at <a href="mailto:{{ helpdesk_email }}" style="color:#1f5eff;">{{ helpdesk_email }}</a>{% if helpdesk_phone %} · {{ helpdesk_phone }}{% endif %}{% else %}Raise a query in the HR portal.{% endif %}<br>
+    This is an automated message from the {{ company_name }} HR portal. Please do not reply. It may contain confidential information intended only for the recipient.
+  </td></tr>
+</table></td></tr></table>
+</body></html>

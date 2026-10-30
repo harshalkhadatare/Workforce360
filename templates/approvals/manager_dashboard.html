@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Manager Dashboard{% endblock %}
+{% block page_title %}Manager Dashboard{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Manager dashboard</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>My team</h1><p>{{ team_size }} direct report{{ team_size|pluralize }} · {{ today|date:"l, d M Y" }}</p></div>
+  <div class="d-flex gap-2"><a class="btn btn-primary" href="{% url 'approvals:pending' %}"><i class="bi bi-check2-square"></i>Review approvals ({{ pending_total }})</a><a class="btn btn-light" href="{% url 'lms:calendar' %}?scope=team"><i class="bi bi-calendar-week"></i>Team calendar</a></div></div>
+
+<div class="row g-3 mb-3">
+  {% for slug, label in type_labels.items %}
+  <div class="col-6 col-md-4 col-xl"><a class="card stat" href="{% url 'approvals:pending' %}?type={{ slug }}"><span class="stat-label">Pending {{ label|lower }}</span><span class="stat-value">{{ by_type|get_item:slug|length }}</span></a></div>
+  {% endfor %}
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card stat"><span class="stat-label">Present today</span><span class="stat-value">{% if today_has_data %}{{ today_present }}{% else %}—{% endif %}</span><span class="stat-sub">{% if not today_has_data %}Today's data not imported yet{% else %}of {{ team_size }}{% endif %}</span></div></div>
+  <div class="col-md-4"><div class="card stat"><span class="stat-label">Absent / missing punch today</span><span class="stat-value">{% if today_has_data %}{{ today_absent }} / {{ today_incomplete }}{% else %}—{% endif %}</span></div></div>
+  <div class="col-md-4"><a class="card stat" href="{% url 'attendance:team' %}?flag=late"><span class="stat-label">Late arrivals this month</span><span class="stat-value">{{ late_count }}</span></a></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header"><h2>Grace-period &amp; half-day exceptions (this month)</h2></div>
+      {% if grace_exceptions %}<div class="table-wrap"><table class="table"><thead><tr><th>Employee</th><th>Date</th><th>In</th><th>Review</th></tr></thead><tbody>
+        {% for r in grace_exceptions %}<tr data-href="{% url 'attendance:day' r.date|date:'Y-m-d' %}?employee={{ r.employee_id }}"><td>{{ r.employee.full_name }}</td><td>{{ r.date|date:"d M" }}</td><td>{{ r.first_in|time:"H:i" }}</td>
+          <td>{% with rv=r.open_review %}{% if rv %}{% badge rv.status rv.get_status_display %}{% else %}—{% endif %}{% endwith %}</td></tr>{% endfor %}
+      </tbody></table></div>{% else %}{% include "partials/empty.html" with icon="bi-flag" title="No half-day flags this month" %}{% endif %}
+    </div>
+    <div class="card"><div class="card-header"><h2>Awaiting employee clarification</h2></div>{% include "approvals/_request_table.html" with items=awaiting_info empty_title="None" %}</div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card"><div class="card-header"><h2>Recently decided</h2></div>
+      {% if recent %}<ul class="list-plain px-3">{% for r in recent %}<li class="d-flex justify-content-between gap-2"><a class="text-reset" href="{% url 'approvals:detail' r.URL_SLUG r.pk %}"><div class="fw-semibold">{{ r.employee.full_name }}</div><div class="cell-sub">{{ r.summary }}</div></a>{% badge r.status r.get_status_display %}</li>{% endfor %}</ul>
+      {% else %}{% include "partials/empty.html" with icon="bi-clock" title="No decisions yet" %}{% endif %}</div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "emails/base.html" %}
+{% block body %}
+<p style="margin:0 0 14px;font-size:14px;line-height:1.55;">{{ intro }}</p>
+{% if employee_id %}<p style="margin:0 0 14px;font-size:14px;">Your Employee ID (username): <strong>{{ employee_id }}</strong></p>{% endif %}
+<p style="margin:0 0 18px;"><a href="{{ link }}" style="display:inline-block;background:#1f5eff;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px;">Set your password</a></p>
+<p style="font-size:12px;color:#64748b;margin:0 0 8px;">Your password is never sent by email. If you did not expect this message, contact HR.</p>
+{% endblock %}

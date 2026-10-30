@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}New policy version{% endblock %}
+{% block page_title %}New {{ kind|title }} Policy Version{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'policies:index' %}">Policy settings</a></li><li class="breadcrumb-item active">New version</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>New {{ kind|lower }} policy version</h1><p>{% if base %}Pre-filled from v{{ base.pk }} ({{ base.effective_from|date:"d M Y" }}).{% endif %} Values marked <span class="pill-hr">needs HR</span> must be confirmed by HR before production use.</p></div></div>
+<form method="post" novalidate>{% csrf_token %}
+<div class="card mb-3"><div class="card-body">
+  {% include "partials/form_errors.html" %}
+  <div class="row gx-3">
+    <div class="col-md-6">{% include "partials/field.html" with field=form.name %}</div>
+    <div class="col-md-6">{% include "partials/field.html" with field=form.source_document %}</div>
+    <div class="col-md-4">{% include "partials/field.html" with field=form.effective_from %}</div>
+    <div class="col-md-8">{% include "partials/field.html" with field=form.departments %}</div>
+  </div>
+</div></div>
+<div class="card mb-3"><div class="card-header"><h2>Rules</h2></div><div class="card-body"><div class="row gx-4">
+  {% for f in form.parameter_fields %}<div class="col-md-6">{% if f.field.needs_hr %}<span class="pill-hr mb-1">needs HR</span>{% endif %}{% include "partials/field.html" with field=f %}</div>{% endfor %}
+</div></div></div>
+<div class="card"><div class="card-body">
+  {% include "partials/field.html" with field=form.change_reason %}
+  {% include "partials/field.html" with field=form.activate wrap="mb-2" %}
+  {% include "partials/field.html" with field=form.confirm %}
+  <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Save version</button><a class="btn btn-light" href="{% url 'policies:index' %}">Cancel</a></div>
+</div></div>
+</form>
+{% endblock %}

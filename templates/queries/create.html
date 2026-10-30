@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Raise a query{% endblock %}
+{% block page_title %}Raise a Query{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'queries:list' %}">Queries</a></li><li class="breadcrumb-item active">New</li>{% endblock %}
+{% block content %}
+<div class="row"><div class="col-lg-8">
+<div class="card"><div class="card-header"><h2>New query to HR</h2></div><div class="card-body">
+  <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+    {% include "partials/form_errors.html" %}
+    <div class="row gx-3"><div class="col-md-5">{% include "partials/field.html" with field=form.category %}</div><div class="col-md-7">{% include "partials/field.html" with field=form.subject %}</div></div>
+    {% include "partials/field.html" with field=form.description %}
+    {% include "partials/field.html" with field=form.attachment %}
+    <div class="d-flex gap-2"><button class="btn btn-primary" type="submit"><i class="bi bi-send"></i>Submit query</button><a class="btn btn-light" href="{% url 'queries:list' %}">Cancel</a></div>
+  </form>
+</div></div>
+</div></div>
+{% endblock %}

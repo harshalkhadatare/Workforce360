@@ -1,0 +1,16 @@
+{% extends "employees/sections/_layout.html" %}
+{% block section_actions %}{% endblock %}
+{% block section %}
+<div class="form-section-title">Employment changes</div>
+{% if records %}
+<div class="table-wrap mb-4"><table class="table">
+  <thead><tr><th>Effective</th><th>Field</th><th>From</th><th>To</th><th class="hide-xs">Reason</th><th class="hide-xs">By</th></tr></thead>
+  <tbody>{% for r in records %}<tr><td>{{ r.effective_date|date:"d M Y" }}</td><td>{{ r.field|title }}</td><td>{{ r.old_value|default:"—" }}</td><td>{{ r.new_value|default:"—" }}</td>
+    <td class="hide-xs">{{ r.reason|default:"—" }}</td><td class="hide-xs">{{ r.changed_by.employee_code|default:"—" }}</td></tr>{% endfor %}</tbody></table></div>
+{% else %}{% include "partials/empty.html" with icon="bi-clock-history" title="No changes recorded since creation" %}{% endif %}
+<div class="form-section-title">Reporting history</div>
+{% if reporting %}
+<div class="table-wrap"><table class="table"><thead><tr><th>Manager</th><th>From</th><th>To</th></tr></thead>
+  <tbody>{% for r in reporting %}<tr><td>{{ r.manager.full_name }} ({{ r.manager.employee_id }})</td><td>{{ r.start_date|date:"d M Y" }}</td><td>{{ r.end_date|date:"d M Y"|default:"Current" }}</td></tr>{% endfor %}</tbody></table></div>
+{% else %}<p class="text-muted">No reporting manager history.</p>{% endif %}
+{% endblock %}

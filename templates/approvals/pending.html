@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Pending Approvals{% endblock %}
+{% block page_title %}Pending Approvals{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Pending approvals</li>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Pending approvals</h1><p>Requests waiting for your decision at their current approval step.</p></div>
+  {% if nav_is_admin %}<a class="btn btn-light" href="?{% if not include_all %}all=1{% endif %}">{% if include_all %}Show only my queue{% else %}Include requests pending with managers{% endif %}</a>{% endif %}
+</div>
+<div class="card">
+  <div class="card-body border-bottom"><nav class="d-flex flex-wrap gap-2" aria-label="Filter by type">
+    <a class="btn btn-sm {% if not type %}btn-primary{% else %}btn-light{% endif %}" href="?{% if include_all %}all=1{% endif %}">All ({{ items|length }})</a>
+    {% for s, l in types %}<a class="btn btn-sm {% if type == s %}btn-primary{% else %}btn-light{% endif %}" href="?type={{ s }}{% if include_all %}&all=1{% endif %}">{{ l }}</a>{% endfor %}
+  </nav></div>
+  {% include "approvals/_request_table.html" with empty_title="No requests are waiting for you" %}
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+# Optional — only when USE_CELERY=true. Runs the worker with an embedded beat scheduler (single node).
+[Unit]
+Description=Vision Infra HR Portal (Celery worker + beat)
+After=network.target redis-server.service postgresql.service
+
+[Service]
+User=vision_hrms
+Group=vision_hrms
+WorkingDirectory=/srv/vision_hrms
+EnvironmentFile=/etc/vision_hrms/env
+ExecStart=/srv/vision_hrms/.venv/bin/celery -A config worker -B -l info --concurrency 2
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

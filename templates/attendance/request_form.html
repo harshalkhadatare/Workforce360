@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'lms:my_requests' %}">My requests</a></li><li class="breadcrumb-item active">{{ title }}</li>{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card"><div class="card-header"><h2><i class="bi {{ icon }} me-1 text-primary"></i>{{ title }}</h2></div><div class="card-body">
+      <p class="text-muted">{{ intro }}</p>
+      {% if rec %}<div class="callout mb-3">Recorded on {{ rec.date|date:"d M Y" }}: In <strong>{{ rec.first_in|time:"H:i"|default:"missing" }}</strong>, Out <strong>{{ rec.last_out|time:"H:i"|default:"missing" }}</strong>.</div>{% endif %}
+      <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+        {% include "partials/form_errors.html" %}
+        <div class="row gx-3">
+        {% for field in form %}
+          {% if conditional and field.name == 'requested_in' %}<div class="col-md-6" data-show-in>{% include "partials/field.html" %}</div>
+          {% elif conditional and field.name == 'requested_out' %}<div class="col-md-6" data-show-out>{% include "partials/field.html" %}</div>
+          {% else %}<div class="{% if field.widget_type == 'textarea' or field.widget_type == 'checkbox' or field.widget_type == 'clearablefile' or field.widget_type == 'file' %}col-12{% else %}col-md-6{% endif %}">{% include "partials/field.html" %}</div>{% endif %}
+        {% endfor %}
+        </div>
+        <p class="form-text">Your request goes to your assigned reporting manager. All rules are checked again on the server when you submit.</p>
+        <div class="d-flex gap-2"><button class="btn btn-primary" type="submit"><i class="bi bi-send"></i>Submit request</button><a class="btn btn-light" href="{% url 'lms:my_requests' %}">Cancel</a></div>
+      </form>
+    </div></div>
+  </div>
+  {% if side %}
+  <div class="col-lg-4"><div class="card"><div class="card-body"><dl class="kv" style="grid-template-columns:1fr">{% for k, v in side %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl></div></div></div>
+  {% endif %}
+</div>
+{% endblock %}

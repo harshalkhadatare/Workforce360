@@ -1,0 +1,87 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Calendar{% endblock %}
+{% block page_title %}{% if scope == 'team' %}Team Leave Calendar{% elif scope == 'company' %}Company Calendar{% else %}Attendance &amp; Leave Calendar{% endif %}{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Calendar</li>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{% if emp %}{{ emp.full_name }}{% elif scope == 'team' %}My team{% elif scope == 'company' %}Company{% else %}My calendar{% endif %}</h1>
+    <p>{% if scope == 'me' or emp %}Attendance, leave, requests, weekly offs and holidays. Select a day to see its details.{% else %}Leave, on-duty and attendance exceptions. Reasons and confidential details are not shown here.{% endif %}</p></div>
+  <nav class="d-flex flex-wrap gap-2" aria-label="Calendar scope">
+    {% if nav_has_employee %}<a class="btn btn-sm {% if scope == 'me' and not emp %}btn-primary{% else %}btn-light{% endif %}" href="?scope=me">Mine</a>{% endif %}
+    {% if nav_is_manager %}<a class="btn btn-sm {% if scope == 'team' %}btn-primary{% else %}btn-light{% endif %}" href="?scope=team">Team</a>{% endif %}
+    {% if nav_is_hr %}<a class="btn btn-sm {% if scope == 'company' %}btn-primary{% else %}btn-light{% endif %}" href="?scope=company">Company</a>{% endif %}
+  </nav>
+</div>
+<div class="card">
+  <div class="card-body border-bottom">
+    <div class="legend" role="group" aria-label="Show event categories">
+      {% if scope == 'me' or emp %}
+      <label><input type="checkbox" class="form-check-input" data-cat="PRESENT" checked><span class="sw" style="background:#12805c"></span>Present</label>
+      <label><input type="checkbox" class="form-check-input" data-cat="ABSENT" checked><span class="sw" style="background:#c0352b"></span>Absent</label>
+      <label><input type="checkbox" class="form-check-input" data-cat="HALF_DAY_FLAG,INCOMPLETE" checked><span class="sw" style="background:#e0a106"></span>Half day / missing punch</label>
+      {% endif %}
+      <label><input type="checkbox" class="form-check-input" data-cat="LEAVE,HALF_DAY_LEAVE" checked><span class="sw" style="background:#1f5eff"></span>Approved leave</label>
+      <label><input type="checkbox" class="form-check-input" data-cat="PENDING_LEAVE" checked><span class="sw" style="border:2px solid #1f5eff"></span>Pending leave</label>
+      {% if scope == 'me' or emp %}<label><input type="checkbox" class="form-check-input" data-cat="REJECTED_LEAVE" checked><span class="sw" style="border:2px solid #c0352b"></span>Rejected leave</label>{% endif %}
+      <label><input type="checkbox" class="form-check-input" data-cat="SHORT_LEAVE" checked><span class="sw" style="background:#6d3fd1"></span>Short leave</label>
+      <label><input type="checkbox" class="form-check-input" data-cat="ON_DUTY" checked><span class="sw" style="background:#0f766e"></span>On duty</label>
+      {% if scope == 'me' or emp %}<label><input type="checkbox" class="form-check-input" data-cat="WEEKLY_OFF" checked><span class="sw" style="background:#cbd2dc"></span>Weekly off</label>{% endif %}
+      <label><input type="checkbox" class="form-check-input" data-cat="HOLIDAY" checked><span class="sw" style="background:#b79cf0"></span>Holiday</label>
+      {% if scope != 'me' and not emp %}<label><input type="checkbox" class="form-check-input" data-cat="EXCEPTION" checked><span class="sw" style="background:#c0352b"></span>Attendance exception</label>{% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    <div id="cal-loading" class="text-muted small mb-2" hidden><span class="spinner-border spinner-border-sm me-1"></span>Loading…</div>
+    <div id="calendar"></div>
+  </div>
+</div>
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="evTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-body p-4"><h2 class="h5" id="evTitle"></h2><p class="text-muted mb-1" id="evDate"></p><p class="mb-0" id="evDetail"></p></div>
+  <div class="modal-footer border-0 pt-0 px-4 pb-4"><button class="btn btn-light" data-bs-dismiss="modal">Close</button><a class="btn btn-primary" id="evLink" href="#">Open details</a></div>
+</div></div></div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/fullcalendar/index.global.min.js' %}"></script>
+<script>
+(function () {
+  const hidden = new Set();
+  const params = new URLSearchParams({ scope: "{{ scope|escapejs }}"{% if emp %}, employee: "{{ emp.pk }}"{% endif %} });
+  const isSelf = {% if scope == 'me' or emp %}true{% else %}false{% endif %};
+  const modal = new bootstrap.Modal(document.getElementById("eventModal"));
+  const cal = new FullCalendar.Calendar(document.getElementById("calendar"), {
+    initialView: window.innerWidth < 768 ? "listWeek" : "dayGridMonth",
+    headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek" },
+    buttonText: { today: "Today", month: "Month", week: "Week", day: "Day", list: "List" },
+    firstDay: 1, height: "auto", dayMaxEvents: 4, nowIndicator: true,
+    loading: function (on) { document.getElementById("cal-loading").hidden = !on; },
+    events: function (info, success, failure) {
+      const q = new URLSearchParams(params); q.set("start", info.startStr.slice(0, 10)); q.set("end", info.endStr.slice(0, 10));
+      fetch("{% url 'lms:calendar_events' %}?" + q.toString(), { credentials: "same-origin" })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(success).catch(failure);
+    },
+    eventDidMount: function (arg) {
+      const cats = (arg.event.extendedProps.category || "");
+      if (hidden.has(cats)) arg.el.style.display = "none";
+      arg.el.setAttribute("title", arg.event.title);
+    },
+    eventClick: function (arg) {
+      arg.jsEvent.preventDefault();
+      document.getElementById("evTitle").textContent = arg.event.title;
+      document.getElementById("evDate").textContent = arg.event.start.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      document.getElementById("evDetail").textContent = arg.event.extendedProps.detail || "";
+      const link = document.getElementById("evLink");
+      if (arg.event.url) { link.href = arg.event.url; link.hidden = false; } else { link.hidden = true; }
+      modal.show();
+    },
+    dateClick: isSelf ? function (info) { window.location = "/attendance/day/" + info.dateStr.slice(0, 10) + "/{% if emp %}?employee={{ emp.pk }}{% endif %}"; } : undefined,
+  });
+  cal.render();
+  document.querySelectorAll("[data-cat]").forEach(function (box) {
+    box.addEventListener("change", function () {
+      box.dataset.cat.split(",").forEach(function (c) { if (box.checked) hidden.delete(c); else hidden.add(c); });
+      cal.getEvents().forEach(function (ev) { ev.setProp("display", hidden.has(ev.extendedProps.category) ? "none" : "auto"); });
+    });
+  });
+})();
+</script>
+{% endblock %}

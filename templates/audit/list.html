@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs{% endblock %}
+{% block page_title %}Audit Logs{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Audit logs</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Audit trail</h1><p>Append-only record of sensitive actions. Entries cannot be edited or deleted from the application. Secrets and full identity/bank numbers are never logged.</p></div></div>
+<div class="card">
+  <div class="card-body border-bottom"><form class="filters" method="get">
+    <div><label class="form-label" for="aq">Search</label><input id="aq" class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Action, target, reason"></div>
+    <div><label class="form-label" for="aa">Area</label><select id="aa" class="form-select" name="action"><option value="">All</option>{% for p in prefixes %}<option value="{{ p }}" {% if request.GET.action == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
+    <div><label class="form-label" for="ac">Actor (Employee ID)</label><input id="ac" class="form-control" name="actor" value="{{ request.GET.actor }}"></div>
+    <div><label class="form-label" for="ae">Affected employee</label><input id="ae" class="form-control" name="employee" value="{{ request.GET.employee }}"></div>
+    <div><label class="form-label" for="af">From</label><input id="af" class="form-control" type="date" name="from" value="{{ request.GET.from }}"></div>
+    <div><label class="form-label" for="at">To</label><input id="at" class="form-control" type="date" name="to" value="{{ request.GET.to }}"></div>
+    <div><button class="btn btn-primary">Filter</button></div></form></div>
+  {% if page_obj.object_list %}
+  <div class="table-wrap"><table class="table"><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th class="hide-xs">Employee</th><th>Details</th></tr></thead><tbody>
+    {% for e in page_obj %}<tr><td class="text-nowrap small">{{ e.created_at|date:"d M Y H:i:s" }}<div class="cell-sub">{{ e.request_id }}</div></td><td>{{ e.actor_label }}<div class="cell-sub">{{ e.ip_address }}</div></td>
+      <td><code>{{ e.action }}</code></td><td class="small">{{ e.target_repr|truncatechars:60 }}<div class="cell-sub">{{ e.target_type }} #{{ e.target_id }}</div></td><td class="hide-xs">{{ e.employee_ref|default:"—" }}</td>
+      <td class="small" style="min-width:220px">{% if e.reason %}<div><strong>Reason:</strong> {{ e.reason|truncatechars:120 }}</div>{% endif %}
+        {% if e.before_json or e.after_json %}<details><summary>Changes</summary>{% if e.before_json %}<div class="cell-sub mt-1">Before</div><pre class="json">{{ e.before_json }}</pre>{% endif %}{% if e.after_json %}<div class="cell-sub">After</div><pre class="json">{{ e.after_json }}</pre>{% endif %}</details>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% include "partials/pagination.html" %}
+  {% else %}{% include "partials/empty.html" with icon="bi-shield-check" title="No audit entries match" %}{% endif %}
+</div>
+{% endblock %}

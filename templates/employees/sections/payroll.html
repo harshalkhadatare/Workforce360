@@ -1,0 +1,20 @@
+{% extends "employees/sections/_layout.html" %}
+{% block section %}
+<div class="callout warn mb-3"><i class="bi bi-info-circle me-1"></i>Restricted to Finance and administrators. This portal does <strong>not</strong> calculate salaries, statutory deductions or tax. Only Finance-approved reference information is recorded until salary structures and payroll rules are approved.</div>
+{% if editing %}
+  {% include "employees/sections/_edit_form.html" %}
+{% elif profile %}
+<dl class="kv">
+  <div><dt>Salary structure</dt><dd>{{ profile.salary_structure|default:"—" }}</dd></div>
+  <div><dt>Effective date</dt><dd>{{ profile.effective_date|date:"d M Y"|default:"—" }}</dd></div>
+  <div><dt>Payroll status</dt><dd>{{ profile.get_payroll_status_display }}</dd></div>
+  <div><dt>Payroll period</dt><dd>{{ profile.payroll_period|default:"—" }}</dd></div>
+  <div><dt>Processing status</dt><dd>{{ profile.get_processing_status_display }}</dd></div>
+  <div><dt>Last updated</dt><dd>{{ profile.updated_at|date:"d M Y H:i" }}{% if profile.updated_by %} by {{ profile.updated_by.employee_code }}{% endif %}</dd></div>
+</dl>
+<div class="row g-3 mt-1">
+  <div class="col-md-6"><div class="form-section"><div class="form-section-title">Approved exemptions</div><p class="mb-0" style="white-space:pre-wrap">{{ profile.approved_exemptions|default:"—" }}</p></div></div>
+  <div class="col-md-6"><div class="form-section"><div class="form-section-title">Authorised deductions</div><p class="mb-0" style="white-space:pre-wrap">{{ profile.authorized_deductions|default:"—" }}</p></div></div>
+</div>
+{% else %}{% include "partials/empty.html" with icon="bi-cash-stack" title="Payroll information not set up" %}{% endif %}
+{% endblock %}

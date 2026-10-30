@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Working hours{% endblock %}
+{% block page_title %}Working Hours &amp; Shifts{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'policies:index' %}">Policy settings</a></li><li class="breadcrumb-item active">Working hours</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Working schedules</h1><p>Policy default: 09:30 – 18:30 (Attendance Policy 002 R2). Add a new version with an effective date instead of editing history.</p></div></div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card"><div class="card-header"><h2>Add schedule / new version</h2></div><div class="card-body">
+    <form method="post" novalidate>{% csrf_token %}{% include "partials/form_errors.html" %}
+      <div class="row gx-3">
+        <div class="col-md-6">{% include "partials/field.html" with field=form.code %}</div><div class="col-md-6">{% include "partials/field.html" with field=form.name %}</div>
+        <div class="col-md-6">{% include "partials/field.html" with field=form.start_time %}</div><div class="col-md-6">{% include "partials/field.html" with field=form.end_time %}</div>
+        <div class="col-md-6">{% include "partials/field.html" with field=form.effective_from %}</div><div class="col-md-6 d-flex align-items-end">{% include "partials/field.html" with field=form.is_default %}</div>
+        <div class="col-12"><fieldset class="mb-3"><legend class="form-label">Weekly off days</legend><div class="d-flex flex-wrap gap-3">{% for c in form.weekly_offs %}<div class="form-check">{{ c.tag }}<label class="form-check-label" for="{{ c.id_for_label }}">{{ c.choice_label }}</label></div>{% endfor %}</div>
+          <div class="form-text">Weekly-off days are not stated in the supplied policy summary — confirm with HR.</div></fieldset></div>
+        <div class="col-12">{% include "partials/field.html" with field=form.change_reason %}</div>
+      </div>
+      <button class="btn btn-primary" type="submit" data-confirm="Save this schedule? Attendance on/after the effective date will use it when recalculated.">Save schedule</button></form>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-header"><h2>All versions</h2></div>
+    {% if schedules %}<div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Name</th><th>Hours</th><th>Offs</th><th>From</th><th class="hide-xs">Reason</th></tr></thead><tbody>
+      {% for s in schedules %}<tr><td>{{ s.code }}{% if s.is_default %} <span class="badge-status tone-blue">Default</span>{% endif %}</td><td>{{ s.name }}</td><td>{{ s.start_time|time:"H:i" }}–{{ s.end_time|time:"H:i" }}</td><td>{{ s.weekly_off_labels }}</td><td>{{ s.effective_from|date:"d M Y" }}</td><td class="hide-xs small">{{ s.change_reason }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}{% include "partials/empty.html" with icon="bi-clock" title="No schedules" %}{% endif %}
+  </div></div>
+</div>
+{% endblock %}

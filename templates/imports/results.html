@@ -1,0 +1,52 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Results — {{ batch.batch_code }}{% endblock %}
+{% block page_title %}Import Results{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item"><a href="{% url 'imports:history' %}">Import history</a></li><li class="breadcrumb-item active">{{ batch.batch_code }}</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ batch.batch_code }} · {{ batch.original_name }}</h1>
+  <p>Uploaded {{ batch.created_at|date:"d M Y H:i" }} by {{ batch.uploaded_by.employee_code|default:"—" }}{% if batch.confirmed_at %} · imported {{ batch.confirmed_at|date:"d M Y H:i" }} by {{ batch.confirmed_by.employee_code }}{% endif %}{% if batch.date_from %} · covers {{ batch.date_from|date:"d M" }} – {{ batch.date_to|date:"d M Y" }}{% endif %}</p></div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">{% badge batch.status batch.get_status_display %}
+    {% if batch.total_rows %}<a class="btn btn-light" href="{% url 'imports:error_report' batch.pk %}"><i class="bi bi-download"></i>Error report (.xlsx)</a>{% endif %}
+    {% if batch.status == 'VALIDATED' %}<a class="btn btn-primary" href="{% url 'imports:preview' batch.pk %}">Continue to confirmation</a>{% elif batch.status == 'UPLOADED' %}<a class="btn btn-primary" href="{% url 'imports:mapping' batch.pk %}">Continue mapping</a>{% endif %}</div></div>
+{% include "imports/_steps.html" with step=7 %}
+{% if batch.status == 'FAILED' %}<div class="callout danger mb-3"><strong>The import failed and was fully rolled back.</strong> No attendance data from this file was saved. Error: {{ batch.failure_message }}</div>{% endif %}
+{% if batch.status == 'ROLLED_BACK' %}<div class="callout warn mb-3">Rolled back {{ batch.rolled_back_at|date:"d M Y H:i" }} by {{ batch.rolled_back_by.employee_code }}: {{ batch.rollback_reason }}. Punches were voided (kept for audit) and attendance was recalculated.</div>{% endif %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3 col-xl"><div class="card stat"><span class="stat-label">Rows</span><span class="stat-value">{{ batch.total_rows }}</span></div></div>
+  <div class="col-6 col-md-3 col-xl"><a class="card stat" href="?show=IMPORTED"><span class="stat-label"><span class="badge-status tone-green">Imported</span></span><span class="stat-value">{{ batch.imported_rows }}</span><span class="stat-sub">{{ batch.punches_created }} punches</span></a></div>
+  <div class="col-6 col-md-3 col-xl"><a class="card stat" href="?show=ERROR"><span class="stat-label"><span class="badge-status tone-red">Rejected</span></span><span class="stat-value">{{ batch.error_rows }}</span></a></div>
+  <div class="col-6 col-md-3 col-xl"><a class="card stat" href="?show=DUPLICATE"><span class="stat-label"><span class="badge-status tone-gray">Duplicates skipped</span></span><span class="stat-value">{{ batch.duplicate_rows }}</span></a></div>
+  <div class="col-6 col-md-3 col-xl"><a class="card stat" href="?show=CONFLICT"><span class="stat-label"><span class="badge-status tone-violet">Needs reconciliation</span></span><span class="stat-value">{{ batch.conflict_rows }}</span></a></div>
+</div>
+
+{% if conflicts and batch.status != 'ROLLED_BACK' and batch.status != 'VALIDATED' %}
+<div class="card mb-3"><div class="card-header"><h2>Reconciliation required</h2><span class="cell-sub">Corrected source data vs. previously imported punches</span></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Row</th><th>Employee</th><th>Date</th><th>New In / Out</th><th>Difference</th><th class="text-end">Decision</th></tr></thead><tbody>
+  {% for r in conflicts %}<tr><td>{{ r.row_number }}</td><td>{{ r.employee_code }}</td><td>{{ r.attendance_date|date:"d M Y" }}</td><td>{{ r.in_time|time:"H:i"|default:"—" }} / {{ r.out_time|time:"H:i"|default:"—" }}</td><td class="small">{{ r.message_text }}</td>
+    <td class="text-end"><form method="post" action="{% url 'imports:reconcile' batch.pk r.pk %}" class="d-flex gap-1 justify-content-end">{% csrf_token %}
+      <input class="form-control form-control-sm" style="max-width:160px" name="note" placeholder="Note (optional)" aria-label="Note">
+      <button class="btn btn-sm btn-success" name="decision" value="accept" data-confirm="Accept the corrected times? An audited adjustment is created; original punches remain.">Accept</button>
+      <button class="btn btn-sm btn-light" name="decision" value="reject">Keep existing</button></form></td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-body border-bottom"><form class="filters" method="get"><div><label class="form-label" for="rs">Rows</label><select id="rs" class="form-select" name="show" data-autosubmit><option value="">All rows</option>{% for v, l in row_statuses %}<option value="{{ v }}" {% if show == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div></form></div>
+  {% include "imports/_rows.html" %}
+</div>
+
+{% if batch.status == 'COMPLETED' or batch.status == 'PARTIAL' %}
+<div class="row g-3">
+  {% if batch.error_rows %}
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h2>Retry rejected rows</h2></div><div class="card-body">
+    <p class="form-text">After fixing the cause (e.g. creating a missing employee), re-validate the rejected rows and import any that are now valid. Rows with data errors must be corrected in a new upload.</p>
+    <form method="post" action="{% url 'imports:retry' batch.pk %}">{% csrf_token %}<button class="btn btn-light" data-confirm="Re-validate {{ batch.error_rows }} rejected rows and import any that are now valid?"><i class="bi bi-arrow-repeat"></i>Retry rejected rows</button></form>
+  </div></div></div>{% endif %}
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h2>Roll back this import</h2></div><div class="card-body">
+    <p class="form-text">Voids every punch created by this batch (they remain stored for audit) and recalculates attendance. Use when the wrong file was imported.</p>
+    <form method="post" action="{% url 'imports:rollback' batch.pk %}" class="d-flex gap-2" data-confirm="Roll back {{ batch.batch_code }}? Attendance for the affected dates will be recalculated." data-confirm-tone="btn-danger">{% csrf_token %}
+      <input class="form-control" name="reason" placeholder="Reason (required)" required aria-label="Reason"><button class="btn btn-outline-danger" type="submit">Roll back</button></form>
+  </div></div></div>
+</div>
+{% endif %}
+{% endblock %}

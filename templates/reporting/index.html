@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports &amp; Exports{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Reports</li>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Reports &amp; exports</h1><p>Reports only include records within your access scope. Exports contain only the columns the report needs; every export is audited.</p></div></div>
+{% for audience, items in groups.items %}{% if items %}
+<div class="card mb-3"><div class="card-header"><h2>{% if audience == 'employee' %}My reports{% elif audience == 'manager' %}Team reports{% else %}Administrator reports{% endif %}</h2></div>
+  <div class="card-body"><div class="row g-2">{% for r in items %}
+    <div class="col-md-6 col-xl-4"><a class="quick-action h-100 align-items-start" href="{% url 'reporting:report' r.key %}"><i class="bi bi-file-earmark-bar-graph"></i><span><span class="d-block">{{ r.title }}</span><span class="cell-sub fw-normal">{{ r.description }}</span></span></a></div>
+  {% endfor %}</div></div></div>
+{% endif %}{% endfor %}
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}{% load ui %}
+{% block title %}Employees &amp; Managers{% endblock %}
+{% block page_title %}Employee &amp; Manager Administration{% endblock %}
+{% block breadcrumbs %}{{ block.super }}<li class="breadcrumb-item active">Employees &amp; managers</li>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Employees, logins &amp; reporting lines</h1><p>Manage portal accounts, roles, reporting managers and master data.</p></div>
+  <a class="btn btn-primary" href="{% url 'employees:create' %}"><i class="bi bi-person-plus"></i>Create employee</a>
+</div>
+<div class="row g-3">
+  <div class="col-xl-9">
+    <div class="card">
+      <div class="card-body border-bottom">
+        <form class="filters" method="get">
+          <div><label class="form-label" for="q">Search</label><input id="q" class="form-control" name="q" value="{{ q }}" placeholder="Employee ID or name"></div>
+          <div><label class="form-label" for="flt">Show</label><select id="flt" class="form-select" name="filter" data-autosubmit>
+            <option value="">All employees</option><option value="no_login" {% if request.GET.filter == 'no_login' %}selected{% endif %}>Without a login</option>
+            <option value="managers" {% if request.GET.filter == 'managers' %}selected{% endif %}>Managers (have direct reports)</option></select></div>
+          <div><button class="btn btn-light" type="submit">Apply</button></div>
+        </form>
+      </div>
+      {% if page_obj.object_list %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Employee</th><th>Department</th><th>Reporting manager</th><th>Login</th><th>Role</th><th class="text-end">Manage</th></tr></thead>
+        <tbody>{% for e in page_obj %}<tr>
+          <td><div class="cell-strong">{{ e.full_name }}</div><div class="cell-sub">{{ e.employee_id }}{% if not e.is_active %} · deactivated{% endif %}</div></td>
+          <td>{{ e.department|default:"—" }}</td>
+          <td>{{ e.reporting_manager.full_name|default:"—" }}</td>
+          <td>{% if e.user %}{% if e.user.is_active %}<span class="badge-status tone-green">Active</span>{% else %}<span class="badge-status tone-gray">Disabled</span>{% endif %}{% else %}<span class="badge-status tone-amber">No login</span>{% endif %}</td>
+          <td>{{ e.user.get_role_display|default:"—" }}</td>
+          <td class="text-end text-nowrap"><a class="btn btn-sm btn-light" href="{% url 'employees:account' e.pk %}">Account</a> <a class="btn btn-sm btn-light" href="{% url 'employees:detail' e.pk 'employment' %}">Employment</a></td>
+        </tr>{% endfor %}</tbody></table></div>
+      {% include "partials/pagination.html" %}
+      {% else %}{% include "partials/empty.html" with icon="bi-people" title="No employees found" %}{% endif %}
+    </div>
+    {% if unlinked_users %}
+    <div class="card mt-3"><div class="card-header"><h2>Logins not linked to an employee</h2></div>
+      <ul class="list-plain px-3">{% for u in unlinked_users %}<li>{{ u.employee_code }} — {{ u.full_name }} <span class="cell-sub">({{ u.get_role_display }}; e.g. the initial administrator)</span></li>{% endfor %}</ul></div>
+    {% endif %}
+  </div>
+  <div class="col-xl-3">
+    <div class="card mb-3"><div class="card-header"><h2>Departments</h2></div><div class="card-body">
+      <ul class="list-plain mb-3">{% for d in departments %}<li class="d-flex justify-content-between"><span>{{ d.name }} <span class="cell-sub">{{ d.code }}</span></span>{% if not d.is_active %}<span class="cell-sub">inactive</span>{% endif %}</li>{% empty %}<li class="text-muted">None yet</li>{% endfor %}</ul>
+      <form method="post" action="{% url 'employees:master_data' %}">{% csrf_token %}<input type="hidden" name="kind" value="dept">
+        {% include "partials/field.html" with field=dept_form.code wrap="mb-2" %}{% include "partials/field.html" with field=dept_form.name wrap="mb-2" %}
+        <input type="hidden" name="dept-is_active" value="on"><button class="btn btn-sm btn-light w-100" type="submit">Add department</button></form>
+    </div></div>
+    <div class="card"><div class="card-header"><h2>Designations</h2></div><div class="card-body">
+      <ul class="list-plain mb-3">{% for d in designations %}<li>{{ d.name }}</li>{% empty %}<li class="text-muted">None yet</li>{% endfor %}</ul>
+      <form method="post" action="{% url 'employees:master_data' %}">{% csrf_token %}<input type="hidden" name="kind" value="desig">
+        {% include "partials/field.html" with field=desig_form.name wrap="mb-2" %}<input type="hidden" name="desig-is_active" value="on">
+        <button class="btn btn-sm btn-light w-100" type="submit">Add designation</button></form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
